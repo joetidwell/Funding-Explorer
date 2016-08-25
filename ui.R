@@ -9,9 +9,7 @@ library(shinydashboard)
 #   load(file.path(path.data,"mydata.RData"))
 
 
-path.data <- file.path("~/srv/shiny-server/districts/data")
-load(file.path(path.data,"districts.RData"))
-path.data <- file.path("~/srv/shiny-server/Funding-Explorer/data")
+path.data <- file.path("/srv/shiny-server/Funding-Explorer/data")
 load(file.path(path.data,"mydata.RData"))
 
 districtChoices <- sort(unique(mydata$`District Name`))
