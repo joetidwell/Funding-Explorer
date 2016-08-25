@@ -30,7 +30,7 @@ dashboardPage(
       #       </a>
       #     </li>'),
       menuItem("Single Year Data", tabName = "plots", icon = icon("bar-chart")),
-      menuItem("Tables", tabName = "widgets", icon = icon("table")),
+      # menuItem("Tables", tabName = "widgets", icon = icon("table")),
       # menuItem("Data", tabName = "widgets", icon = icon("database")),
       menuItem("Settings & Help", tabName = "settings", icon = icon("cog"))
       # HTML('<li style="margin-top: 10px;">
