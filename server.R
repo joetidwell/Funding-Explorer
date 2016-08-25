@@ -11,8 +11,8 @@ theme_set(theme_classic())
 # path.data <- file.path("~/git/WADA-Explorer/data")
 # load(file.path(path.data,"mydata.RData"))
 
-path.data <- file.path("/srv/shiny-server/Funding-Explorer/data")
-load(file.path(path.data,"mydata.RData"))
+# path.data <- file.path("/srv/shiny-server/Funding-Explorer/data")
+load("data/mydata.RData")
 
 dcolor <- c("steelblue","#EE8A12")
 tcolor <- c("white","black")
