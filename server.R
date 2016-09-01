@@ -14,6 +14,9 @@ theme_set(theme_classic())
 # path.data <- file.path("/srv/shiny-server/Funding-Explorer/data")
 load("data/mydata.RData")
 
+# exclude districts who don;t collect taxes, i.e. charter and federal school
+mydata <- mydata[`Local Taxes`>0]
+
 dcolor <- c("steelblue","#EE8A12")
 tcolor <- c("white","black")
 
@@ -66,6 +69,49 @@ fplot1 <- function(input, txtsize=1) {
 }
 
 
+tsfplot1 <- function(input, txtsize=1, inflation=FALSE) {
+        data <- mydata[gsa==TRUE]
+        data[,color:="grey"]
+        data[`District Name`==input$primary_district, color:=dcolor[1]]
+        data[`District Name`==input$secondary_district, color:=dcolor[2]]
+        data[,value:=eval(parse(text=eq[name==input$formula2]$form))]
+        if(inflation) {
+          data[,value:=value*inf.factor]
+        }
+        data[,hjust := ifelse(value > 0, "left", "right")]
+    
+        tsdata <- data[,as.list(quantile(value,c(.25,.5,.75))),by=year]
+        # tsdata <- melt(tsdata, id.var="year")
+    
+        alldata <- tsdata[,.(year,`50%`)]
+        setnames(alldata, "50%", "value")
+        alldata$`District Name` <- "Greater San Antonio"
+        alldata <- rbind(alldata,
+          data[`District Name` %in% c(input$primary_district,input$secondary_district),
+             .(`District Name`,year,value)])
+        alldata[,`District Name`:=ordered(`District Name`, 
+                                          levels=c("Greater San Antonio",
+                                                   input$primary_district,
+                                                   input$secondary_district))]        
+
+        ggplot(tsdata, aes(x=year, y=`25%`)) + 
+          geom_ribbon(aes(ymin=`25%`,ymax=`75%`), fill="lightgrey", alpha="0.5") +
+          geom_line(data=alldata, aes(x=year, y=value, 
+                                      group=`District Name`,
+                                      color=`District Name`), size=1) +
+          labs(title="Greater San Antonio",
+              x="Year",
+              y=paste(input$formula, ifelse(inflation, "   (2015 Dollars)", ""))) +
+          scale_x_continuous(expand = c(0, 0), 
+                             limits=c(min(data$year),max(data$year)+1),
+                             breaks= pretty_breaks()) +
+          scale_color_manual(name="",
+                             values=c("black",dcolor)) +
+          theme(legend.position="bottom")
+
+}
+
+
 fplot2 <- function(input, txtsize=3) {
 
         data <- mydata[year==input$year,]
@@ -106,8 +152,49 @@ fplot2 <- function(input, txtsize=3) {
 }
 
 
-fplot3 <- function(input, txtsize=1) {
-        data <- mydata[fgsd==TRUE & year==input$year,]
+tsfplot2 <- function(input, txtsize=1, inflation=FALSE) {
+        data <- mydata
+        data[,value:=eval(parse(text=eq[name==input$formula2]$form))]
+        if(inflation) {
+          data[,value:=value*inf.factor]
+        }
+        data[,hjust := ifelse(value > 0, "left", "right")]
+    
+        tsdata <- data[,as.list(quantile(value,c(.25,.5,.75))),by=year]
+        tsdata.41 <- data[Chap41>0,as.list(quantile(value,c(.25,.5,.75))),by=year]
+        tsdata.not41 <- data[Chap41==0,as.list(quantile(value,c(.25,.5,.75))),by=year]
+    
+        alldata <- rbind(tsdata[,.(year,`50%`,group="Texas")],
+                         tsdata.41[,.(year,`50%`,group="Chapter 41")],
+                         tsdata.not41[,.(year,`50%`,group="Non Chapter 41")])
+
+        alldata[,group:=ordered(group, 
+                                levels=c("Texas",
+                                         "Chapter 41",
+                                         "Non Chapter 41"))]        
+
+        ggplot(tsdata, aes(x=year, y=`25%`)) + 
+          geom_ribbon(aes(ymin=`25%`,ymax=`75%`), fill="lightgrey", alpha="0.5") +
+          geom_ribbon(data=tsdata.41, aes(ymin=`25%`,ymax=`75%`), fill="lightgrey", alpha="0.5") +
+          geom_ribbon(data=tsdata.not41, aes(ymin=`25%`,ymax=`75%`), fill="lightgrey", alpha="0.5") +
+          geom_line(data=alldata, aes(x=year, y=`50%`, 
+                                      group=group,
+                                      color=group), size=1) +
+          labs(title="Texas",
+              x="Year",
+              y=paste(input$formula, ifelse(inflation, "   (2015 Dollars)", ""))) +
+          scale_x_continuous(expand = c(0, 0), 
+                             limits=c(min(data$year),max(data$year)+1),
+                             breaks= pretty_breaks()) +
+          scale_color_manual(name="",
+                             values=c("black","tomato1","orchid")) +
+          theme(legend.position="bottom")
+
+}
+
+fplot3 <- function(input, txtsize=3) {
+        # data <- mydata[fgsd==TRUE & year==input$year,]
+        data <- mydata[Chap41>0 & year==input$year,]
         data[,color:="grey"]
         data[,tcolor:="black"]
         data[`District Name`==input$primary_district, color:=dcolor[1]]
@@ -116,25 +203,53 @@ fplot3 <- function(input, txtsize=1) {
         data[,value:=eval(parse(text=eq[name==input$formula]$form))]
         data[,hjust := ifelse(value > 0, "left", "right")]
     
-    
-    
-        ggplot(data, aes(x=reorder(CDN, value), 
-                         y=value,
-                         label=gsub(" ISD","",`District Name`),
-                         hjust=hjust)) +
-          geom_bar(fill=data$color[order(data$value)], position="dodge", stat="identity") +
-          coord_flip() +
-          # scale_fill_manual(values=c("grey","#EE8A12","steelblue")) +
-          # scale_x_discrete(labels=gsub(" ISD", "", data[order(value)]$`District Name`)) +
+        s <- sd(data$value)
+        # data <- data[value<(median(value) + 5*s)]    
+        # data <- data[value>(median(value) - 5*s)]    
+        
+        Fn <- ecdf(data$value)
+
+        data[,percentile:=Fn(value)]
+        ddata <- rbind(data[`District Name` == input$primary_district],
+                       data[`District Name` == input$secondary_district])
+
+
+
+        ggplot(data, aes(x=value,y=percentile)) +
+          geom_line(size=1) +
+          geom_label(data=ddata, aes(x=value,
+                                     y=percentile, 
+                                     label=gsub(" ISD","",`District Name`)),
+                    color=ddata$tcolor, fill=ddata$color, size=3) +
+          # scale_fill_manual(values=dcolor) +
+          # scale_color_manual(values=tcolor) +
           expand_limits(y = 0) +
           scale_y_continuous(expand = c(0, 0)) +
-          labs(x="", title="Fast Growth Districts", y=paste0(data$year[1]," : ",input$formula)) +
-          guides(fill=FALSE, color=FALSE) +
-          geom_text(aes(y=0), color=data$tcolor[order(data$value)], size=txtsize) +
-          scale_color_manual(values=c("black","black","white")) +
-          theme(axis.title.y=element_blank(),
-                axis.text.y=element_blank(),
-                axis.ticks.y=element_blank())
+          labs(y="Percentile", title="Chapter 41 Districts", x=paste0(data$year[1]," : ",input$formula)) +
+          guides(fill=FALSE, color=FALSE) 
+          # theme(axis.title.y=element_blank(),
+          #       axis.text.y=element_blank(),
+          #       axis.ticks.y=element_blank())    
+    
+
+
+        # ggplot(data, aes(x=reorder(CDN, value), 
+        #                  y=value,
+        #                  label=gsub(" ISD","",`District Name`),
+        #                  hjust=hjust)) +
+        #   geom_bar(fill=data$color[order(data$value)], position="dodge", stat="identity") +
+        #   coord_flip() +
+        #   # scale_fill_manual(values=c("grey","#EE8A12","steelblue")) +
+        #   # scale_x_discrete(labels=gsub(" ISD", "", data[order(value)]$`District Name`)) +
+        #   expand_limits(y = 0) +
+        #   scale_y_continuous(expand = c(0, 0)) +
+        #   labs(x="", title="Chapter 41 Districts", y=paste0(data$year[1]," : ",input$formula)) +
+        #   guides(fill=FALSE, color=FALSE) +
+        #   geom_text(aes(y=0), color=data$tcolor[order(data$value)], size=txtsize) +
+        #   scale_color_manual(values=c("black","black","white")) +
+        #   theme(axis.title.y=element_blank(),
+        #         axis.text.y=element_blank(),
+        #         axis.ticks.y=element_blank())
 }
 
 shinyServer(function(input, output, session) {
@@ -230,7 +345,9 @@ shinyServer(function(input, output, session) {
    output$FGSD <- renderValueBox({
       if(!is.null(input$radio)) {
         mycol <- ifelse(input$radio==1, "blue", "yellow")
-        data <- mydata[fgsd==TRUE & year==input$year]
+        # data <- mydata[fgsd==TRUE & year==input$year]
+        data <- mydata[Chap41 > 0 & year==input$year]
+
         data[,value:=eval(parse(text=eq[name==input$formula]$form))]
         Fn <- ecdf(data$value)
         data[,per:=Fn(value)]
@@ -246,7 +363,8 @@ shinyServer(function(input, output, session) {
         txt<-"--%"
         mycol <- "blue"
       }
-        valueBox(txt, "In Fast Growth Districts", icon = icon("line-chart"), 
+        # valueBox(txt, "In Fast Growth Districts", icon = icon("line-chart"), 
+        valueBox(txt, "In Chapter 41 Districts", icon = icon("line-chart"), 
                  color=mycol)
       })
 
@@ -297,6 +415,11 @@ shinyServer(function(input, output, session) {
     selectInput("formula", NULL, as.list(eq$name))
   })
 
+  # Drop-down selection box for which formula
+  output$choose_formula_time <- renderUI({
+    selectInput("formula2", NULL, as.list(eq$name))
+  })
+
   # Drop-down selection box for which year
   output$choose_year <- renderUI({
     selectInput("year", NULL, as.list(unique(mydata$year)), selected=2014)
@@ -322,6 +445,25 @@ shinyServer(function(input, output, session) {
 
 
 ####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### Greater San Antonio - Time Series
+####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  output$tsplot1 <- renderPlot({
+    if(!(is.null(input$formula2) | is.null(input$primary_district))) {
+        tsfplot1(input, txtsize=1, ifelse(input$inflation==TRUE, TRUE, FALSE))
+      }
+  })
+
+  output$tsplot1L <- renderPlot({
+    if(!(is.null(input$formula2) | is.null(input$primary_district))) {
+        tsfplot1(input, txtsize=3,ifelse(input$inflation==TRUE, TRUE, FALSE))
+      }
+  })
+
+
+
+
+####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #### Texas - Most Recent Year
 ####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -337,6 +479,25 @@ shinyServer(function(input, output, session) {
       fplot2(input, txtsize=3)
     }
   })
+
+
+####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### Texas - Time Series
+####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+  output$tsplot2 <- renderPlot({
+    if(!(is.null(input$formula2) | is.null(input$primary_district))) {
+      tsfplot2(input, txtsize=3,ifelse(input$inflation==TRUE, TRUE, FALSE))
+    }
+  })
+
+  output$tsplot2L <- renderPlot({
+    if(!(is.null(input$formula2) | is.null(input$primary_district))) {
+      tsfplot2(input, txtsize=3,ifelse(input$inflation==TRUE, TRUE, FALSE))
+    }
+  })
+
 
 
 ####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

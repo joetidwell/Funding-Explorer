@@ -11,6 +11,9 @@ library(shinydashboard)
 
 # path.data <- file.path("/srv/shiny-server/Funding-Explorer/data")
 load("data/mydata.RData")
+# exclude districts who don;t collect taxes, i.e. charter and federal school
+mydata <- mydata[`Local Taxes`>0]
+
 
 districtChoices <- sort(unique(mydata$`District Name`))
 names(districtChoices) <- districtChoices
@@ -29,7 +32,8 @@ dashboardPage(
       #         <h4>Pages</h4>
       #       </a>
       #     </li>'),
-      menuItem("Single Year Data", tabName = "plots", icon = icon("bar-chart")),
+      menuItem("Single Year Reports", tabName = "plots", icon = icon("bar-chart")),
+      menuItem("Time Series Reports", tabName = "time", icon = icon("line-chart")),
       # menuItem("Tables", tabName = "widgets", icon = icon("table")),
       # menuItem("Data", tabName = "widgets", icon = icon("database")),
       menuItem("Settings & Help", tabName = "settings", icon = icon("cog"))
@@ -67,7 +71,7 @@ dashboardPage(
             # box(width=4,
             #     "Choose one of the formulas in the selection box to the right, or create a new one.",
             #     status="primary"),
-            box("Select one of the formulas to the right, or create a new formula in the 'Settings & Help' menu, where you can also select two 'focus' districts for the Percentile Ranks and Plot displays. ", width=4,
+            box("Select a formula, or create a new formula in the 'Settings & Help' menu, where you can also select two 'focus' districts for the Percentile Ranks and Plot displays. ", width=4,
                solidHeader=TRUE,
                status="primary"),
             box(title="Select Formula",
@@ -119,7 +123,66 @@ dashboardPage(
           # )
         )
       ),
+      tabItem(tabName = "time",
+        fluidPage(
+          fluidRow(
+            titlePanel("Formula & Year"),
+            box("Select a formulas, or create a new formula in the 'Settings & Help' menu, where you can also select two 'focus' districts for the Percentile Ranks and Plot displays. ", width=4,
+               solidHeader=TRUE,
+               status="primary"),
+            box(title="Select Formula",
+                uiOutput("choose_formula_time"), width=4,
+                solidHeader=TRUE,
+                status="primary"),
+            box(title="Options",
+                checkboxInput("inflation", "Adjust for Inflation?", FALSE),
+                width=2,
+                solidHeader=TRUE,
+                status="primary")
+            # box(title="Select Year",
+            #     uiOutput("choose_year"), width=4,
+            #     solidHeader=TRUE,
+            #     status="primary")
+          ),
+          # fluidRow(
+          #   titlePanel("Percentile Ranks")
+          #   # uiOutput("radioDist"),
+          #   # valueBoxOutput("GSA", width=4),
+          #   # valueBoxOutput("state", width=4),
+          #   # valueBoxOutput("FGSD", width=4)
+          # ),        
+          fluidRow(
+            titlePanel("Plots"),
+            box(plotOutput("tsplot1", height = 250), 
+                actionButton("tssave1", "Zoom/Download"),
+                width=6),
+            bsModal("tsmodalPlot1", "Your plot", "tssave1", size = "large",plotOutput("tsplot1L", width="75%"),downloadButton('tsdownloadPlot1', 'Download')),
+            box(plotOutput("tsplot2", height = 250), 
+                actionButton("tssave2", "Zoom/Download"),
+                width=6),
+            bsModal("tsmodalPlot2", "Your plot", "tssave2", size = "large",plotOutput("tsplot2L", width="75%"),downloadButton('tsdownloadPlot2', 'Download'))
+            # box(plotOutput("tsplot3", height = 250), 
+            #     actionButton("tssave3", "Zoom/Download"),
+            #     width=4),
+            # bsModal("tsmodalPlot3", "Your plot", "tssave3", size = "large",plotOutput("tsplot3L", width="75%"),downloadButton('tsdownloadPlot3', 'Download'))
 
+          )
+          # fluidRow(
+          #   box(plotOutput("plot4", height = 250), 
+          #       actionButton("large1", "Zoom"),
+          #       actionButton("save1", "Save PDF"),
+          #       width=4),
+          #   box(plotOutput("plot5", height = 250), 
+          #       actionButton("large1", "Zoom"),
+          #       actionButton("save1", "Save PDF"),
+          #       width=4),
+          #   box(plotOutput("plot6", height = 250), 
+          #       actionButton("large1", "Zoom"),
+          #       actionButton("save1", "Save PDF"),
+          #       width=4)
+          # )
+        )
+      ),
       # Settings
       tabItem(tabName = "settings",
         fluidRow(
