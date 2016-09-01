@@ -2,6 +2,7 @@ library(shiny)
 library(shinyBS)
 library(shinydashboard)
 library(ggplot2)
+library(scales)
 library(data.table)
 theme_set(theme_classic())
 
