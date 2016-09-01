@@ -6,8 +6,9 @@ library(data.table)
 
 # path.data <- file.path("~/git/District-Explorer/data")
 # load(file.path(path.data,"districts.RData"))
-  path.data <- file.path("~/srv/shiny-server/Funding-Explorer/data")
-  load(file.path(path.data,"mydata.RData"))
+  # path.data <- file.path("~/srv/shiny-server/Funding-Explorer/data")
+load("data/mydata.RData")
+mydata <- mydata[`Local Taxes`>0]
 
 
 # path.data <- file.path("/srv/shiny-server/Funding-Explorer/data")
