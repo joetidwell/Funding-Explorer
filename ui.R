@@ -1,18 +1,19 @@
 library(shiny)
 library(shinyBS)
 library(shinydashboard)
+library(data.table)
 
 
 # path.data <- file.path("~/git/District-Explorer/data")
 # load(file.path(path.data,"districts.RData"))
-#   path.data <- file.path("~/git/WADA-Explorer/data")
-#   load(file.path(path.data,"mydata.RData"))
+  path.data <- file.path("~/git/WADA-Explorer/data")
+  load(file.path(path.data,"mydata.RData"))
 
 
 # path.data <- file.path("/srv/shiny-server/Funding-Explorer/data")
-load("data/mydata.RData")
+# load("data/mydata.RData")
 # exclude districts who don;t collect taxes, i.e. charter and federal school
-mydata <- mydata[`Local Taxes`>0]
+# mydata <- mydata[`Local Taxes`>0]
 
 
 districtChoices <- sort(unique(mydata$`District Name`))
