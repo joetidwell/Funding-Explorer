@@ -90,21 +90,42 @@ dashboardPage(
           fluidRow(
             titlePanel("Percentile Ranks"),
             uiOutput("radioDist"),
-            valueBoxOutput("GSA", width=4),
-            valueBoxOutput("state", width=4),
-            valueBoxOutput("FGSD", width=4)
+            valueBoxOutput("vbox1", width=4),
+            valueBoxOutput("vbox2", width=4),
+            valueBoxOutput("vbox3", width=4)
           ),        
           fluidRow(
             titlePanel("Plots"),
-            box(plotOutput("plot1", height = 250), 
+            box(selectInput("selectPlot1", label = NA, 
+                            choices = list("Greater San Antonio" = 1, 
+                                           "State-Wide" = 2, 
+                                           "Chapter 41 Districts" = 3,
+                                           "Texas School Coalition" = 4,
+                                           "Fast Growth Districts" = 5), 
+                            selected = 1),
+                plotOutput("plot1", height = 250), 
                 actionButton("save1", "Zoom/Download"),
                 width=4),
             bsModal("modalPlot1", "Your plot", "save1", size = "large",plotOutput("plot1L", width="75%"),downloadButton('downloadPlot1', 'Download')),
-            box(plotOutput("plot2", height = 250), 
+            box(selectInput("selectPlot2", label = NA, 
+                            choices = list("Greater San Antonio" = 1, 
+                                           "State-Wide" = 2, 
+                                           "Chapter 41 Districts" = 3,
+                                           "Texas School Coalition" = 4,
+                                           "Fast Growth Districts" = 5), 
+                            selected = 2),
+                plotOutput("plot2", height = 250), 
                 actionButton("save2", "Zoom/Download"),
                 width=4),
             bsModal("modalPlot2", "Your plot", "save2", size = "large",plotOutput("plot2L", width="75%"),downloadButton('downloadPlot2', 'Download')),
-            box(plotOutput("plot3", height = 250), 
+            box(selectInput("selectPlot3", label = NA, 
+                            choices = list("Greater San Antonio" = 1, 
+                                           "State-Wide" = 2, 
+                                           "Chapter 41 Districts" = 3,
+                                           "Texas School Coalition" = 4,
+                                           "Fast Growth Districts" = 5), 
+                            selected = 3),
+                plotOutput("plot3", height = 250), 
                 actionButton("save3", "Zoom/Download"),
                 width=4),
             bsModal("modalPlot3", "Your plot", "save3", size = "large",plotOutput("plot3L", width="75%"),downloadButton('downloadPlot3', 'Download'))
@@ -153,22 +174,45 @@ dashboardPage(
           #   # valueBoxOutput("state", width=4),
           #   # valueBoxOutput("FGSD", width=4)
           # ),        
+
           fluidRow(
-            titlePanel("Plots"),
+            titlePanel("State-Wide"),
+            # box(plotOutput("tsplot1", height = 250), 
+            #     actionButton("tssave1", "Zoom/Download"),
+            #     width=6),
+            # bsModal("tsmodalPlot1", "Your plot", "tssave1", size = "large",plotOutput("tsplot1L", width="75%"),downloadButton('tsdownloadPlot1', 'Download')),
+            box(plotOutput("tsplot2", height = 250), 
+                actionButton("tssave2", "Zoom/Download"),
+                width=7),
+            bsModal("tsmodalPlot2", "Your plot", "tssave2", size = "large",plotOutput("tsplot2L", width="75%"),downloadButton('tsdownloadPlot2', 'Download')),
+            box(title="Groups to display:",
+                solidHeader=TRUE,
+                status="primary",
+                width=4,
+                uiOutput("tsGroups"))
+            # box(plotOutput("tsplot3", height = 250), 
+            #     actionButton("tssave3", "Zoom/Download"),
+            #     width=4),
+            # bsModal("tsmodalPlot3", "Your plot", "tssave3", size = "large",plotOutput("tsplot3L", width="75%"),downloadButton('tsdownloadPlot3', 'Download'))
+
+          ),
+                    fluidRow(
+            titlePanel("Greater San Antonio"),
             box(plotOutput("tsplot1", height = 250), 
                 actionButton("tssave1", "Zoom/Download"),
                 width=6),
-            bsModal("tsmodalPlot1", "Your plot", "tssave1", size = "large",plotOutput("tsplot1L", width="75%"),downloadButton('tsdownloadPlot1', 'Download')),
-            box(plotOutput("tsplot2", height = 250), 
-                actionButton("tssave2", "Zoom/Download"),
-                width=6),
-            bsModal("tsmodalPlot2", "Your plot", "tssave2", size = "large",plotOutput("tsplot2L", width="75%"),downloadButton('tsdownloadPlot2', 'Download'))
+            bsModal("tsmodalPlot1", "Your plot", "tssave1", size = "large",plotOutput("tsplot1L", width="75%"),downloadButton('tsdownloadPlot1', 'Download'))
+            # box(plotOutput("tsplot2", height = 250), 
+            #     actionButton("tssave2", "Zoom/Download"),
+            #     width=6),
+            # bsModal("tsmodalPlot2", "Your plot", "tssave2", size = "large",plotOutput("tsplot2L", width="75%"),downloadButton('tsdownloadPlot2', 'Download'))
             # box(plotOutput("tsplot3", height = 250), 
             #     actionButton("tssave3", "Zoom/Download"),
             #     width=4),
             # bsModal("tsmodalPlot3", "Your plot", "tssave3", size = "large",plotOutput("tsplot3L", width="75%"),downloadButton('tsdownloadPlot3', 'Download'))
 
           )
+
           # fluidRow(
           #   box(plotOutput("plot4", height = 250), 
           #       actionButton("large1", "Zoom"),
@@ -216,10 +260,17 @@ dashboardPage(
                   tags$li(HTML("<strong>Total Revenue</strong> - <em>value of general fund total operating revenue</em>")), 
                   tags$li(HTML("<strong>WADA</strong> - <em>weighted average daily attendance</em>")) 
                 ),
-                h4("Source"),
-                tags$ul(tags$li(HTML("All financial data downloaded from the TEA <a href='http://tea.texas.gov/Reports_and_Data/'>website</a>")))
-                
-            ),
+                h4("Sources"),
+                tags$ul(tags$li(HTML("All financial data downloaded from the TEA <a href='http://tea.texas.gov/Reports_and_Data/'>website</a>")),
+                        tags$ul(tags$li(HTML("<a href='http://tea.texas.gov/WorkArea/linkit.aspx?LinkIdentifier=id&ItemID=25769819568&libID=25769819677'>2005-2015 ADA and WADA Report</a>")),
+                                tags$li(HTML("<a href='http://tea.texas.gov/WorkArea/linkit.aspx?LinkIdentifier=id&ItemID=25769825545&libID=25769825641'>PEIMS 2000-2015 Summarized Financial Data Repor</a>")),
+                                tags$li(HTML("<a href='http://tea.texas.gov/WorkArea/DownloadAsset.aspx?id=51539610094'>1994-2016 Chapter 41 Recapture Paid by District Report</a>"))
+                                ),
+                        tags$li(HTML("Texas School Coalition membership obtained from the <a href='http://www.txsc.org/membership/'>Texas School Coalition</a>")),
+                        tags$li(HTML("Fast growth school districts obtained from the <a href='http://fastgrowthtexas.org/member-districts/'>Fast Growth School Coalition</a>"))
+                        )
+
+                      ),
             box(title="Add a formula",
                 width=6,
                 solidHeader=TRUE,
@@ -249,3 +300,6 @@ dashboardPage(
     )
   )
 )
+
+
+
