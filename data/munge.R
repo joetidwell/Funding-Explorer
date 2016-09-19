@@ -225,43 +225,61 @@ ggplot(mydata, aes(x=year, y=form2, group=is41, color=is41)) +
 
 
 
-ggplot(mydata, aes(x=year, y=form1, group=is41, color=is41)) +
-  geom_smooth() +
-  scale_color_manual(name="",
-                     values=c("firebrick","steelblue"),
-                     labels=c("Non - Chapter 41 Districts","Chapter 41 Districts")) +
-  labs(y="(Total Revenue - Chapter 41) / ADA",
-       title="Revenue per Student\nAdjusted for Chapter 41") +
-  theme(legend.position = c(0.2, 0.95),
-       legend.background = element_rect(fill="transparent")) +
-  expand_limits(x = 2004) +
-  scale_x_continuous(expand = c(0, 0))
+# ggplot(mydata, aes(x=year, y=form1, group=is41, color=is41)) +
+#   geom_smooth() +
+#   scale_color_manual(name="",
+#                      values=c("firebrick","steelblue"),
+#                      labels=c("Non - Chapter 41 Districts","Chapter 41 Districts")) +
+#   labs(y="(Total Revenue - Chapter 41) / ADA",
+#        title="Revenue per Student\nAdjusted for Chapter 41") +
+#   theme(legend.position = c(0.2, 0.95),
+#        legend.background = element_rect(fill="transparent")) +
+#   expand_limits(x = 2004) +
+#   scale_x_continuous(expand = c(0, 0))
 
-ggplot(mydata, aes(x=year, y=form4, group=is41, color=is41)) +
-  geom_smooth() +
-  scale_color_manual(name="",
-                     values=c("firebrick","steelblue"),
-                     labels=c("Non - Chapter 41 Districts","Chapter 41 Districts")) +
-  labs(y="Total Revenue / ADA",
-       title="Revenue per Student") +
-  theme(legend.position = c(0.2, 0.95),
-       legend.background = element_rect(fill="transparent")) +
-  expand_limits(x = 2004) +
-  scale_x_continuous(expand = c(0, 0))
-
-
-ggplot(mydata, aes(x=year, y=form3, group=is41, color=is41)) +
-  geom_smooth() +
-  scale_color_manual(name="",
-                     values=c("firebrick","steelblue"),
-                     labels=c("Non - Chapter 41 Districts","Chapter 41 Districts")) +
-  labs(y="(Total Revenue - Chapter 41) / ADA",
-       title="Revenue per Student\nAdjusted for Chapter 41") +
-  theme(legend.position = c(0.2, 0.95),
-       legend.background = element_rect(fill="transparent")) +
-  expand_limits(x = 2004) +
-  scale_x_continuous(expand = c(0, 0))
+# ggplot(mydata, aes(x=year, y=form4, group=is41, color=is41)) +
+#   geom_smooth() +
+#   scale_color_manual(name="",
+#                      values=c("firebrick","steelblue"),
+#                      labels=c("Non - Chapter 41 Districts","Chapter 41 Districts")) +
+#   labs(y="Total Revenue / ADA",
+#        title="Revenue per Student") +
+#   theme(legend.position = c(0.2, 0.95),
+#        legend.background = element_rect(fill="transparent")) +
+#   expand_limits(x = 2004) +
+#   scale_x_continuous(expand = c(0, 0))
 
 
-ggplot(mydata[is41==TRUE,chap41,by=.(year)], aes(x=year, y=form4)) +
-  geom_smooth() 
+# ggplot(mydata, aes(x=year, y=form3, group=is41, color=is41)) +
+#   geom_smooth() +
+#   scale_color_manual(name="",
+#                      values=c("firebrick","steelblue"),
+#                      labels=c("Non - Chapter 41 Districts","Chapter 41 Districts")) +
+#   labs(y="(Total Revenue - Chapter 41) / ADA",
+#        title="Revenue per Student\nAdjusted for Chapter 41") +
+#   theme(legend.position = c(0.2, 0.95),
+#        legend.background = element_rect(fill="transparent")) +
+#   expand_limits(x = 2004) +
+#   scale_x_continuous(expand = c(0, 0))
+
+
+# ggplot(mydata[is41==TRUE,chap41,by=.(year)], aes(x=year, y=form4)) +
+#   geom_smooth() 
+
+load("myData.RData")
+TSC <- data.table(read.csv("TSC.csv"))
+TSC[,District.Name:=toupper(District.Name)]
+
+TSC$District.Name[!(TSC$District.Name %in% mydata$`District Name`)]
+tmpname <- TSC$District.Name[!(TSC$District.Name %in% mydata$`District Name`)][1]
+tmpname
+TSC[District.Name==tmpname, District.Name:="IRAAN-SHEFFIELD ISD"]
+mydata[grepl("IRAAN",`District Name`)]
+
+
+TSC[,TSC:=TRUE]
+setnames(TSC,"District.Name", "District Name")
+setkey(TSC,`District Name`)
+setkey(mydata,`District Name`)
+
+save(mydata, file="mydata.RData")
