@@ -158,7 +158,7 @@ dashboardPage(
                 solidHeader=TRUE,
                 status="primary"),
             box(title="Options",
-                checkboxInput("inflation", "Adjust for Inflation?", FALSE),
+                checkboxInput("inflation", "Adjust for Inflation?", TRUE),
                 width=2,
                 solidHeader=TRUE,
                 status="primary")
