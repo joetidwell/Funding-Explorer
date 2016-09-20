@@ -568,20 +568,23 @@ shinyServer(function(input, output, session) {
 
 
   output$vbox1 <- renderValueBox({
-     switch(input$selectPlot1,  
-           '1' = GSAbox(),
-           '2' = GSAbox(),
-           '3' = GSAbox(),
-           '4' = GSAbox(),
-           '5' = statebox(),
-           '6' = Chap41box(),
-           '7' = TSCbox(),
-           '8' = FGSDbox())     
+    if(!is.null(input$selectPlot1)) {
+         switch(input$selectPlot1,  
+               '1' = GSAbox(),
+               '2' = GSAbox(),
+               '3' = GSAbox(),
+               '4' = GSAbox(),
+               '5' = statebox(),
+               '6' = Chap41box(),
+               '7' = TSCbox(),
+               '8' = FGSDbox())   
+    }  
   })
    
 
   output$vbox2 <- renderValueBox({
-     switch(input$selectPlot2,  
+    if(!is.null(input$selectPlot2)) {
+         switch(input$selectPlot2,  
            '1' = GSAbox(),
            '2' = GSAbox(),
            '3' = GSAbox(),
@@ -590,9 +593,11 @@ shinyServer(function(input, output, session) {
            '6' = Chap41box(),
            '7' = TSCbox(),
            '8' = FGSDbox())     
+    }
   })
 
   output$vbox3 <- renderValueBox({
+    if(!is.null(input$selectPlot3)) {    
      switch(input$selectPlot3,  
            '1' = GSAbox(),
            '2' = GSAbox(),
@@ -602,6 +607,7 @@ shinyServer(function(input, output, session) {
            '6' = Chap41box(),
            '7' = TSCbox(),
            '8' = FGSDbox())       
+   }
   })
 
    
