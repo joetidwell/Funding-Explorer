@@ -272,7 +272,7 @@ dashboardPage(
                 h4("Sources"),
                 tags$ul(tags$li(HTML("All financial data downloaded from the TEA <a href='http://tea.texas.gov/Reports_and_Data/'>website</a>")),
                         tags$ul(tags$li(HTML("<a href='http://tea.texas.gov/WorkArea/linkit.aspx?LinkIdentifier=id&ItemID=25769819568&libID=25769819677'>2005-2015 ADA and WADA Report</a>")),
-                                tags$li(HTML("<a href='http://tea.texas.gov/WorkArea/linkit.aspx?LinkIdentifier=id&ItemID=25769825545&libID=25769825641'>PEIMS 2000-2015 Summarized Financial Data Repor</a>")),
+                                tags$li(HTML("<a href='http://tea.texas.gov/WorkArea/linkit.aspx?LinkIdentifier=id&ItemID=25769825545&libID=25769825641'>PEIMS 2000-2015 Summarized Financial Data Report</a>")),
                                 tags$li(HTML("<a href='http://tea.texas.gov/WorkArea/DownloadAsset.aspx?id=51539610094'>1994-2016 Chapter 41 Recapture Paid by District Report</a>"))
                                 ),
                         tags$li(HTML("Texas School Coalition membership obtained from the <a href='http://www.txsc.org/membership/'>Texas School Coalition</a>")),
