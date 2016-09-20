@@ -266,20 +266,81 @@ ggplot(mydata, aes(x=year, y=form2, group=is41, color=is41)) +
 # ggplot(mydata[is41==TRUE,chap41,by=.(year)], aes(x=year, y=form4)) +
 #   geom_smooth() 
 
+# load("myData.RData")
+# TSC <- data.table(read.csv("TSC.csv"))
+# TSC[,District.Name:=toupper(District.Name)]
+
+# TSC$District.Name[!(TSC$District.Name %in% mydata$`District Name`)]
+# tmpname <- TSC$District.Name[!(TSC$District.Name %in% mydata$`District Name`)][1]
+# tmpname
+# TSC[District.Name==tmpname, District.Name:="IRAAN-SHEFFIELD ISD"]
+# mydata[grepl("IRAAN",`District Name`)]
+
+
+# TSC[,TSC:=TRUE]
+# setnames(TSC,"District.Name", "District Name")
+# setkey(TSC,`District Name`)
+# setkey(mydata,`District Name`)
+
+# save(mydata, file="mydata.RData")
+
+
 load("myData.RData")
-TSC <- data.table(read.csv("TSC.csv"))
-TSC[,District.Name:=toupper(District.Name)]
+austin <- data.table(read.csv("austin.csv"))
+austin[,`District.Name`:=toupper(`District.Name`)]
 
-TSC$District.Name[!(TSC$District.Name %in% mydata$`District Name`)]
-tmpname <- TSC$District.Name[!(TSC$District.Name %in% mydata$`District Name`)][1]
-tmpname
-TSC[District.Name==tmpname, District.Name:="IRAAN-SHEFFIELD ISD"]
-mydata[grepl("IRAAN",`District Name`)]
+austin$District.Name[!(austin$District.Name %in% mydata$`District Name`)]
+austin$District.Name[(austin$District.Name %in% mydata$`District Name`)]
+
+# tmpname <- TSC$District.Name[!(TSC$District.Name %in% mydata$`District Name`)][1]
+# tmpname
+# TSC[District.Name==tmpname, District.Name:="IRAAN-SHEFFIELD ISD"]
+# mydata[grepl("IRAAN",`District Name`)]
 
 
-TSC[,TSC:=TRUE]
-setnames(TSC,"District.Name", "District Name")
-setkey(TSC,`District Name`)
+austin[,austin:=TRUE]
+setnames(austin,"District.Name", "District Name")
+setkey(austin,`District Name`)
 setkey(mydata,`District Name`)
+
+mydata <- austin[mydata]
+
+houston <- data.table(read.csv("greater_houston.csv"))
+houston[,`District.Name`:=toupper(`District.Name`)]
+
+houston$District.Name[!(houston$District.Name %in% mydata$`District Name`)]
+houston$District.Name[(houston$District.Name %in% mydata$`District Name`)]
+
+tmpname <- houston$District.Name[!(houston$District.Name %in% mydata$`District Name`)][1]
+tmpname
+mydata[grepl("LAMAR",`District Name`)]
+houston[District.Name==tmpname, District.Name:="LAMAR CISD"]
+
+
+houston[,houston:=TRUE]
+setnames(houston,"District.Name", "District Name")
+setkey(houston,`District Name`)
+setkey(mydata,`District Name`)
+
+mydata <- houston[mydata]
+
+dfw <- data.table(read.csv("DFW.csv"))
+dfw[,`District.Name`:=toupper(`District.Name`)]
+
+dfw$District.Name[!(dfw$District.Name %in% mydata$`District Name`)]
+dfw$District.Name[(dfw$District.Name %in% mydata$`District Name`)]
+
+tmpname <- dfw$District.Name[!(dfw$District.Name %in% mydata$`District Name`)][1]
+tmpname
+mydata[grepl("HIGHLAND",`District Name`)]
+dfw[District.Name==tmpname, District.Name:="HIGHLAND PARK ISD (DALLAS)"]
+
+
+dfw[,dfw:=TRUE]
+setnames(dfw,"District.Name", "District Name")
+setkey(dfw,`District Name`)
+setkey(mydata,`District Name`)
+
+mydata <- dfw[mydata]
 
 save(mydata, file="mydata.RData")

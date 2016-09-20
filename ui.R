@@ -97,34 +97,43 @@ dashboardPage(
           fluidRow(
             titlePanel("Plots"),
             box(selectInput("selectPlot1", label = NA, 
-                            choices = list("Greater San Antonio" = 1, 
-                                           "State-Wide" = 2, 
-                                           "Chapter 41 Districts" = 3,
-                                           "Texas School Coalition" = 4,
-                                           "Fast Growth Districts" = 5), 
-                            selected = 1),
+                            choices = list("Greater Austin" = 1,
+                                           "Dallas-Fort Worth" = 2,
+                                           "Greater Houston" = 3,
+                                           "Greater San Antonio" = 4, 
+                                           "State-Wide" = 5, 
+                                           "Chapter 41 Districts" = 6,
+                                           "Texas School Coalition" = 7,
+                                           "Fast Growth Districts" = 8),
+                            selected = 4),
                 plotOutput("plot1", height = 250), 
                 actionButton("save1", "Zoom/Download"),
                 width=4),
             bsModal("modalPlot1", "Your plot", "save1", size = "large",plotOutput("plot1L", width="75%"),downloadButton('downloadPlot1', 'Download')),
             box(selectInput("selectPlot2", label = NA, 
-                            choices = list("Greater San Antonio" = 1, 
-                                           "State-Wide" = 2, 
-                                           "Chapter 41 Districts" = 3,
-                                           "Texas School Coalition" = 4,
-                                           "Fast Growth Districts" = 5), 
-                            selected = 2),
+                            choices = list("Greater Austin" = 1,
+                                           "Dallas-Fort Worth" = 2,
+                                           "Greater Houston" = 3,
+                                           "Greater San Antonio" = 4, 
+                                           "State-Wide" = 5, 
+                                           "Chapter 41 Districts" = 6,
+                                           "Texas School Coalition" = 7,
+                                           "Fast Growth Districts" = 8),
+                            selected = 5),
                 plotOutput("plot2", height = 250), 
                 actionButton("save2", "Zoom/Download"),
                 width=4),
             bsModal("modalPlot2", "Your plot", "save2", size = "large",plotOutput("plot2L", width="75%"),downloadButton('downloadPlot2', 'Download')),
             box(selectInput("selectPlot3", label = NA, 
-                            choices = list("Greater San Antonio" = 1, 
-                                           "State-Wide" = 2, 
-                                           "Chapter 41 Districts" = 3,
-                                           "Texas School Coalition" = 4,
-                                           "Fast Growth Districts" = 5), 
-                            selected = 3),
+                             choices = list("Greater Austin" = 1,
+                                           "Dallas-Fort Worth" = 2,
+                                           "Greater Houston" = 3,
+                                           "Greater San Antonio" = 4, 
+                                           "State-Wide" = 5, 
+                                           "Chapter 41 Districts" = 6,
+                                           "Texas School Coalition" = 7,
+                                           "Fast Growth Districts" = 8),
+                            selected = 6),
                 plotOutput("plot3", height = 250), 
                 actionButton("save3", "Zoom/Download"),
                 width=4),
@@ -176,7 +185,7 @@ dashboardPage(
           # ),        
 
           fluidRow(
-            titlePanel("State-Wide"),
+            titlePanel("Time Series"),
             # box(plotOutput("tsplot1", height = 250), 
             #     actionButton("tssave1", "Zoom/Download"),
             #     width=6),
@@ -195,23 +204,23 @@ dashboardPage(
             #     width=4),
             # bsModal("tsmodalPlot3", "Your plot", "tssave3", size = "large",plotOutput("tsplot3L", width="75%"),downloadButton('tsdownloadPlot3', 'Download'))
 
-          ),
-                    fluidRow(
-            titlePanel("Greater San Antonio"),
-            box(plotOutput("tsplot1", height = 250), 
-                actionButton("tssave1", "Zoom/Download"),
-                width=6),
-            bsModal("tsmodalPlot1", "Your plot", "tssave1", size = "large",plotOutput("tsplot1L", width="75%"),downloadButton('tsdownloadPlot1', 'Download'))
-            # box(plotOutput("tsplot2", height = 250), 
-            #     actionButton("tssave2", "Zoom/Download"),
-            #     width=6),
-            # bsModal("tsmodalPlot2", "Your plot", "tssave2", size = "large",plotOutput("tsplot2L", width="75%"),downloadButton('tsdownloadPlot2', 'Download'))
-            # box(plotOutput("tsplot3", height = 250), 
-            #     actionButton("tssave3", "Zoom/Download"),
-            #     width=4),
-            # bsModal("tsmodalPlot3", "Your plot", "tssave3", size = "large",plotOutput("tsplot3L", width="75%"),downloadButton('tsdownloadPlot3', 'Download'))
-
           )
+          #           fluidRow(
+          #   titlePanel("Greater San Antonio"),
+          #   box(plotOutput("tsplot1", height = 250), 
+          #       actionButton("tssave1", "Zoom/Download"),
+          #       width=6),
+          #   bsModal("tsmodalPlot1", "Your plot", "tssave1", size = "large",plotOutput("tsplot1L", width="75%"),downloadButton('tsdownloadPlot1', 'Download'))
+          #   # box(plotOutput("tsplot2", height = 250), 
+          #   #     actionButton("tssave2", "Zoom/Download"),
+          #   #     width=6),
+          #   # bsModal("tsmodalPlot2", "Your plot", "tssave2", size = "large",plotOutput("tsplot2L", width="75%"),downloadButton('tsdownloadPlot2', 'Download'))
+          #   # box(plotOutput("tsplot3", height = 250), 
+          #   #     actionButton("tssave3", "Zoom/Download"),
+          #   #     width=4),
+          #   # bsModal("tsmodalPlot3", "Your plot", "tssave3", size = "large",plotOutput("tsplot3L", width="75%"),downloadButton('tsdownloadPlot3', 'Download'))
+
+          # )
 
           # fluidRow(
           #   box(plotOutput("plot4", height = 250), 
