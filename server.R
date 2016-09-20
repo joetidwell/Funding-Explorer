@@ -423,7 +423,7 @@ shinyServer(function(input, output, session) {
    # })
 
     GSAbox <- reactive({
-      if(!is.null(input$radio) & !is.null(input$formula)) {
+      if(!is.null(input$radio) & !is.null(input$formula) & !is.null(input$selectPlot1)) {
         mycol <- ifelse(input$radio==1, "blue", "yellow")
         data <- switch(input$selectPlot1,
           "1" = mydata[austin==TRUE & year==input$year],
