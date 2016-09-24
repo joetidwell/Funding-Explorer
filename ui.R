@@ -252,6 +252,11 @@ dashboardPage(
               selectizeInput("secondary_district", "District 'B': (Type to search)",
                 list(choices=c("NONE", districtChoices)),
                 selected="EDGEWOOD ISD (BEXAR)")
+            ),
+            box(
+              title = "Contact Info", width = 3, 
+              solidHeader = TRUE, status = "primary",
+              HTML("If you have any questions, suggestions, or bugs to report, please contact me at <span style='unicode-bidi:bidi-override; direction: rtl;'>moc.liamg@llewditeoj</span>")
             )
         ),
         fluidRow(
