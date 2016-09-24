@@ -484,6 +484,7 @@ shinyServer(function(input, output, session) {
       } else {
         mycol <- "blue"
         txt<-"--%"
+        title<-"---"
       }
         valueBox(txt, title, icon = icon("map-pin"), 
                  color=mycol)
