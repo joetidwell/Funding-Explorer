@@ -183,44 +183,74 @@ tsfplot2 <- function(input, txtsize=1, inflation=FALSE, groups) {
                          tsdata.tsc[,.(year,`25%`,`50%`,`75%`,group="TSC")],
                          tsdata.fgsd[,.(year,`25%`,`50%`,`75%`,group="Fast-Growth")],
                          tsdata.d1[,.(year,`25%`,`50%`,`75%`,group=input$primary_district)],
-                         tsdata.d2[,.(year,`25%`,`50%`,`75%`,group=input$secondary_district)],
                          tsdata.austin[,.(year,`25%`,`50%`,`75%`,group="Greater Austin")],
                          tsdata.houston[,.(year,`25%`,`50%`,`75%`,group="Greater Houston")],
                          tsdata.dfw[,.(year,`25%`,`50%`,`75%`,group="Dallas-Fort Worth")])
 
-        alldata[,group:=ordered(group, 
-                                levels=c("Texas",
-                                         "Chapter 41",
-                                         "Non Chapter 41",
-                                         "Greater San Antonio",
-                                         "TSC",
-                                         "Fast-Growth",
-                                         input$primary_district,
-                                         input$secondary_district,
-                                         "Greater Austin",
-                                         "Dallas-Fort Worth",
-                                         "Greater Houston"))]        
+        if(input$secondary_district!="NONE") {
+          alldata <- rbind(alldata, tsdata.d2[,.(year,`25%`,`50%`,`75%`,group=input$secondary_district)])
+ 
+          alldata[,group:=ordered(group, 
+                                  levels=c("Texas",
+                                           "Chapter 41",
+                                           "Non Chapter 41",
+                                           "Greater San Antonio",
+                                           "TSC",
+                                           "Fast-Growth",
+                                           input$primary_district,
+                                           input$secondary_district,
+                                           "Greater Austin",
+                                           "Dallas-Fort Worth",
+                                           "Greater Houston"))]        
 
-        dt.color <- data.table(group=levels(alldata$group),
-                               color=c("black",
-                                       "tomato1",
-                                       "orchid",
-                                       "firebrick",
-                                       "slateblue4",
-                                       "forestgreen",
-                                       dcolor[1],
-                                       dcolor[2],
-                                       "hotpink4",
-                                       "thistle",
-                                       "khaki4"))
+          dt.color <- data.table(group=levels(alldata$group),
+                                 color=c("black",
+                                         "tomato1",
+                                         "orchid",
+                                         "firebrick",
+                                         "slateblue4",
+                                         "forestgreen",
+                                         dcolor[1],
+                                         dcolor[2],
+                                         "hotpink4",
+                                         "thistle",
+                                         "khaki4"))
+        } else {
+
+          alldata[,group:=ordered(group, 
+                                  levels=c("Texas",
+                                           "Chapter 41",
+                                           "Non Chapter 41",
+                                           "Greater San Antonio",
+                                           "TSC",
+                                           "Fast-Growth",
+                                           input$primary_district,
+                                           "Greater Austin",
+                                           "Dallas-Fort Worth",
+                                           "Greater Houston"))]        
+
+          dt.color <- data.table(group=levels(alldata$group),
+                                 color=c("black",
+                                         "tomato1",
+                                         "orchid",
+                                         "firebrick",
+                                         "slateblue4",
+                                         "forestgreen",
+                                         dcolor[1],
+                                         "hotpink4",
+                                         "thistle",
+                                         "khaki4"))
+        }
+
+
 
 
         ggplot(alldata[group%in%groups], aes(x=year, y=`50%`, group=group)) +
           geom_line(aes(color=group), size=1) +
           # geom_ribbon(aes(ymin=`25%`, ymax=`75%`), fill="lightgrey", alpha=.35) +
-          labs(title="Texas",
-              x="Year",
-              y=paste(input$formula, ifelse(inflation, "   (2015 Dollars)", ""))) +
+          labs(x="Year",
+              y=ifelse(inflation, "2015 Dollars", "Dollars"),
+              title=paste(input$formula2)) +
           scale_x_continuous(expand = c(0, 0), 
                              limits=c(min(data$year),max(data$year)+1),
                              breaks= pretty_breaks()) +
@@ -845,6 +875,13 @@ shinyServer(function(input, output, session) {
           ggsave(file, device = "pdf", width=5, height=4, units="in")
       }
   )
+  output$tsdownloadPlot2 <- downloadHandler(
+      filename = function() { paste(input$formula, '.pdf', sep='') },
+      content = function(file) {
+          ggsave(file, device = "pdf", width=8, height=4, units="in")
+      }
+  )
+
 
   # output$downloadPlot3 <- downloadHandler(
   #     filename = function() { paste(input$formula, '.pdf', sep='') },

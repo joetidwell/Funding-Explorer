@@ -159,7 +159,7 @@ dashboardPage(
         fluidPage(
           fluidRow(
             titlePanel("Formula & Year"),
-            box("Select a formulas, or create a new formula in the 'Settings & Help' menu, where you can also select two 'focus' districts for the Percentile Ranks and Plot displays. ", width=4,
+            box("Select a formula, or create a new formula in the 'Settings & Help' menu, where you can also select two 'focus' districts for the Percentile Ranks and Plot displays. ", width=4,
                solidHeader=TRUE,
                status="primary"),
             box(title="Select Formula",
@@ -244,13 +244,13 @@ dashboardPage(
             box(
               title = "Target Districts", width = 4, 
               solidHeader = TRUE, status = "primary",
-              "Select two districts to highlight in the various plots. District 'A' will be will be plotted in blue. District 'B' will be plotted in orange",
+              "Select two districts to highlight in the various plots. District 'A' will be will be plotted in blue. District 'B' will be plotted in orange. If you only want to display one district, select NONE for District 'B'.",
               HTML("<p>"),
               selectizeInput("primary_district", "District 'A': (Type to search)",
                 list(choices=districtChoices),
                 selected="BOERNE ISD"),
               selectizeInput("secondary_district", "District 'B': (Type to search)",
-                list(choices=districtChoices),
+                list(choices=c("NONE", districtChoices)),
                 selected="EDGEWOOD ISD (BEXAR)")
             )
         ),
