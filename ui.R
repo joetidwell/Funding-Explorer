@@ -68,12 +68,37 @@ dashboardPage(
           #     )
           # ),
           fluidRow(
+            titlePanel("Focal Districts"),
+            box(
+              solidHeader=TRUE,
+              status="primary",
+              width=4,
+              "Select up to two districts to highlight in the various plots. District 'A' will be will be plotted in blue. District 'B' will be plotted in orange. If you only want to display one district, select NONE for District 'B'."
+            ),
+            box(
+              title="District 'A'",              
+              width = 4, 
+              solidHeader = TRUE, status = "primary",
+              selectizeInput("primary_district", "District 'A': (Type to search)",
+                list(choices=districtChoices),
+                selected="BOERNE ISD")),
+            box(
+              title="District 'B'",              
+              width = 4, 
+              solidHeader = TRUE, status = "primary",
+              selectizeInput("secondary_district", "District 'B': (Type to search)",
+                list(choices=c("NONE", districtChoices)),
+                selected="NONE")
+            )
+          ),
+
+          fluidRow(
             titlePanel("Formula & Year"),
             # uiOutput("display_formula"),
             # box(width=4,
             #     "Choose one of the formulas in the selection box to the right, or create a new one.",
             #     status="primary"),
-            box("Select a formula, or create a new formula in the 'Settings & Help' menu, where you can also select two 'focus' districts for the Percentile Ranks and Plot displays. ", width=4,
+            box("Select a formula, or create a new formula in the 'Settings & Help' menu.", width=4,
                solidHeader=TRUE,
                status="primary"),
             box(title="Select Formula",
@@ -159,7 +184,7 @@ dashboardPage(
         fluidPage(
           fluidRow(
             titlePanel("Formula & Year"),
-            box("Select a formula, or create a new formula in the 'Settings & Help' menu, where you can also select two 'focus' districts for the Percentile Ranks and Plot displays. ", width=4,
+            box("Select a formula, or create a new formula in the 'Settings & Help' menu.", width=4,
                solidHeader=TRUE,
                status="primary"),
             box(title="Select Formula",
@@ -241,18 +266,18 @@ dashboardPage(
       # Settings
       tabItem(tabName = "settings",
         fluidRow(
-            box(
-              title = "Target Districts", width = 4, 
-              solidHeader = TRUE, status = "primary",
-              "Select two districts to highlight in the various plots. District 'A' will be will be plotted in blue. District 'B' will be plotted in orange. If you only want to display one district, select NONE for District 'B'.",
-              HTML("<p>"),
-              selectizeInput("primary_district", "District 'A': (Type to search)",
-                list(choices=districtChoices),
-                selected="BOERNE ISD"),
-              selectizeInput("secondary_district", "District 'B': (Type to search)",
-                list(choices=c("NONE", districtChoices)),
-                selected="EDGEWOOD ISD (BEXAR)")
-            ),
+            # box(
+            #   title = "Target Districts", width = 4, 
+            #   solidHeader = TRUE, status = "primary",
+            #   "Select two districts to highlight in the various plots. District 'A' will be will be plotted in blue. District 'B' will be plotted in orange. If you only want to display one district, select NONE for District 'B'.",
+            #   HTML("<p>"),
+            #   selectizeInput("primary_district", "District 'A': (Type to search)",
+            #     list(choices=districtChoices),
+            #     selected="BOERNE ISD"),
+            #   selectizeInput("secondary_district", "District 'B': (Type to search)",
+            #     list(choices=c("NONE", districtChoices)),
+            #     selected="EDGEWOOD ISD (BEXAR)")
+            # ),
             box(
               title = "Contact Info", width = 3, 
               solidHeader = TRUE, status = "primary",
