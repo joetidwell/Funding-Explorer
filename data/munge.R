@@ -1,35 +1,22 @@
-# Revenue per WADA pre Robin Hood
-# revenue per WADA post Robin Hood
-# actual revenue per student
-# actual revenue per student including Federal Aid 
+####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### Inits
+####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 library(data.table)
 library(reshape2)
 library(plyr)
 library(tidyr)
-
 options(stringsAsFactors = FALSE)
 
 
-# school data from TEA
-# http://tea.texas.gov/Reports_and_Data/
+####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### Finance Data
+####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 dat.wada <- data.table(read.csv("2005-2015_ADA_WADA.csv"))
-dat.41 <- data.table(read.csv("1994-2014_Chapter41.csv"))
 dat.finance <- data.table(read.csv("2000-2015_Summarized_Financial_Data.csv"))  
 setnames(dat.wada,gsub("X","",gsub("X\\.","X",names(dat.wada))))
-setnames(dat.41, gsub("X","",names(dat.41)))
-setnames(dat.41,"County.District.Number","CDN")
 setnames(dat.finance,"DISTRICT.NUMBER","CDN")
-
-
-dat.41[,Chapter.41.District:=NULL]
-dat.41 <- dat.41[!is.na(CDN)]
-dat.41 <- data.table::melt(dat.41, 
-                           id.var="CDN", 
-                           variable.name="year", 
-                           value.name="Chap41",
-                           variable.factor=FALSE)
 
 dat.wada[, DISTRICT.NAME:=NULL]
 dat.wada <- data.table::melt(dat.wada,
@@ -40,20 +27,19 @@ dat.wada <- spread(dat.wada, variable, value)
 
 setnames(dat.finance, "DISTRICT.NAME", "District Name")
 setnames(dat.finance, "YEAR", "year")
+
 dat.finance <- dat.finance[,.SD,.SDcols=c("CDN","District Name","year",
                                           "GEN.FUNDS.TOTAL.OPERATING.REVENUE",
                                           "GEN.FUNDS.LOCAL.TAX",
                                           "GEN.FUNDS.STATE.REVENUE",
-                                          "GEN.FUNDS.FEDERAL.REVENUE")]
+                                          "GEN.FUNDS.FEDERAL.REVENUE",
+                                          "ALL.FUNDS.EQUITY.TRANSFERS")]
 
-dat.41[,year:=as.integer(year)]
 dat.wada[,year:=as.integer(year)]
-
-setkeyv(dat.41, c("CDN","year"))
 setkeyv(dat.wada, c("CDN","year"))
 setkeyv(dat.finance, c("CDN","year"))
 
-mydata <- dat.41[dat.wada[dat.finance]]
+mydata <- dat.wada[dat.finance]
 mydata <- mydata[!(is.na(ADA) | is.na(WADA))]
 
 
@@ -80,22 +66,12 @@ mydata[,inflation:=inflation+1]
 mydata[,inf.factor:=cumprod(inflation),by=.(CDN)]
 mydata[,inf.factor:=1/(inf.factor/max(inf.factor)),by=.(CDN)]
 
-load("~/git/District-Explorer/data/districts.RData")
-tmp <- districts@data
-setnames(tmp, "DISTRICT NUMBER", "CDN")
-tmp <- tmp[,.(CDN,fgsd,gsa)]
-setkey(tmp,CDN)
-setkey(mydata,CDN)
-
-mydata <- tmp[mydata]
 
 setnames(mydata,
-         names(mydata)[9:12],
-         c("Total Revenue", "Local Taxes", "State Revenue", "Federal Revenue"))
+         names(mydata)[6:10],
+         c("Total Revenue", "Local Taxes", "State Revenue", "Federal Revenue", "Chap41"))
 
-mydata <- mydata[ADA!=0]
-mydata[is.na(Chap41), Chap41:=0]
-mydata[CDN==234903, gsa:=FALSE]
+mydata <- mydata[!(ADA==0)]
 
 # Correct Duplicate ISD Names
 setkey(mydata, `District Name`)
@@ -108,7 +84,8 @@ mydata[CDN==230901, `District Name`:="BIG SANDY ISD (UPSHUR)"]
 mydata[CDN==145902, `District Name`:="CENTERVILLE ISD (LEON)"]
 mydata[CDN==228904, `District Name`:="CENTERVILLE ISD (TRINITY)"]
 mydata[CDN==212909, `District Name`:="CHAPEL HILL ISD (SMITH)"]
-mydata[CDN==202815, `District Name`:="CHAPEL HILL ISD (TARRANT)"]
+mydata[CDN==220815, `District Name`:="CHAPEL HILL ACADEMY"]
+mydata[CDN==225906, `District Name`:="CHAPEL HILL ISD (TITUS)"]
 mydata[CDN==58902, `District Name`:="DAWSON ISD (DAWSON)"]
 mydata[CDN==175904, `District Name`:="DAWSON ISD (NAVARRO)"]
 mydata[CDN==188903, `District Name`:="HIGHLAND PARK ISD (POTTER)"]
@@ -120,227 +97,165 @@ mydata[CDN==161903, `District Name`:="MIDWAY ISD (MCLENNAN)"]
 mydata[CDN==244905, `District Name`:="NORTHSIDE ISD (WILBARGER)"]
 mydata[CDN==15915, `District Name`:="NORTHSIDE ISD (BEXAR)"]
 mydata[CDN==49903, `District Name`:="VALLEY VIEW ISD (COOKE)"]
-mydata[CDN==108916, `District Name`:="NORTHSIDE ISD (HIDALGO)"]
+mydata[CDN==108916, `District Name`:="VALLEY VIEW ISD (HIDALGO)"]
 mydata[CDN==221912, `District Name`:="WYLIE ISD (TAYLOR)"]
 mydata[CDN==43914, `District Name`:="WYLIE ISD (COLLIN)"]
 
+mydata[`District Name`=="HAYS CONS ISD", `District Name`:="HAYS CISD"]
+mydata[`District Name`=="SAN MARCOS CONS ISD", `District Name`:="SAN MARCOS CISD"]
+mydata[`District Name`=="CROCKETT CO CONS CSD", `District Name`:="CROCKETT COUNTY CONSOLIDATED CSD"]
 
-# fix northside
-mydata[CDN==244905, gsa:=FALSE]
+mydata[year==2014][,.(.N, CDN),by=`District Name`][N>1]
 
-save(mydata, file="mydata.RData")
-load("mydata.RData")
+####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### Austin Metro Area
+####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-library(ggplot2)
-theme_set(theme_classic())
-quantile(mydata$blah,c(.99))
-
-mydata[ADA==0]
-ggplot(mydata, aes(x=year, y=`Total Revenue`/ADA)) +
-  geom_point()
-
-library(plotly)
-d <- diamonds[sample(nrow(diamonds), 1000), ]
-# note how size is automatically scaled and added as hover text
-
-pdata <- mydata[fgsd==TRUE,.(`District Name`,
-                            year,
-                            `Revenue per WADA`=(`Total Revenue`-Chap41)/WADA)]
-pdata <- pdata[`Revenue per WADA`<quantile(`Revenue per WADA`,.99)]
-
-mydata[gsa==TRUE]
-
-
-setkey(pdata, year)
-ggplot(pdata[], aes(x=year, y=`Revenue per WADA`, group=`District Name`)) +
-  geom_line(color="lightgrey") +
-  geom_line(data=pdata[`District Name`=="BOERNE ISD"], color="firebrick", size=2)
-
-
-pdata <- mydata[gsa==TRUE,.(`District Name`,
-                            CDN,
-                            year,
-                            `Revenue per WADA`=(`State Revenue`-`Chap41`)/ADA)]
-                            # `Revenue per WADA`=(`Total Revenue`)/WADA)]
-# pdata <- pdata[`Revenue per WADA`<quantile(`Revenue per WADA`,.99)]
-pdata[,color:="A"]
-pdata[`District Name`=="BOERNE ISD",color:="B"]
-pdata[`District Name`=="EDGEWOOD ISD",color:="C"]
-pdata[,hjust := ifelse(`Revenue per WADA`< 0, "left", "right")]
-
-
-ggplot(pdata[year==2014], aes(x=reorder(CDN, `Revenue per WADA`), 
-                              y=`Revenue per WADA`,
-                              label=`District Name`,
-                              hjust=hjust)) +
-  geom_bar(aes(fill=color), position="dodge", stat="identity") +
-  coord_flip() +
-  scale_fill_manual(values=c("grey","firebrick","steelblue")) +
-  # scale_x_discrete(labels=pdata[year==2014][order(`Revenue per WADA`)]$`District Name`) +
-  expand_limits(y = 0) +
-  scale_y_continuous(expand = c(0, 0)) +
-  labs(x="") +
-  guides(fill=FALSE) +
-  geom_text(aes(y=0)) +
-  theme(axis.title.y=element_blank(),
-        axis.text.y=element_blank(),
-        axis.ticks.y=element_blank())
-
-   +
-  geom_line(data=pdata[`District Name`=="BOERNE ISD"], color="firebrick", size=2)
-
-
-
-mydata[`District Name`=="BOERNE ISD"]
-
-
-mydata[,form1:=(`Total Revenue`)/ADA]
-
-setkey(mydata,form1)
-mydata[year==2014][1:4]$`District Name`
-
-mydata[,form1:=factor2016*(`Total Revenue`-Chap41)/ADA]
-mydata[,form2:=factor2016*`Total Revenue`/ADA]
-mydata[,is41:=Chap41>0]
-
-mydata[,form3:=factor2016*(`State Revenue`-Chap41)/`Total Revenue`]
-mydata[,form4:=factor2016*``/ADA]
-
-mydata[Chap41==max(Chap41)]
-
-mydata[`Total Revenue`<100000]
-
-ggplot(mydata, aes(x=year, y=form2, group=is41, color=is41)) +
-  geom_smooth() +
-  scale_color_manual(name="",
-                     values=c("firebrick","steelblue"),
-                     labels=c("Non - Chapter 41 Districts","Chapter 41 Districts")) +
-  labs(y="Total Revenue / ADA",
-       title="Revenue per Student") +
-  theme(legend.position = c(0.2, 0.95),
-       legend.background = element_rect(fill="transparent")) +
-  expand_limits(x = 2004) +
-  scale_x_continuous(expand = c(0, 0))
-
-
-
-
-# ggplot(mydata, aes(x=year, y=form1, group=is41, color=is41)) +
-#   geom_smooth() +
-#   scale_color_manual(name="",
-#                      values=c("firebrick","steelblue"),
-#                      labels=c("Non - Chapter 41 Districts","Chapter 41 Districts")) +
-#   labs(y="(Total Revenue - Chapter 41) / ADA",
-#        title="Revenue per Student\nAdjusted for Chapter 41") +
-#   theme(legend.position = c(0.2, 0.95),
-#        legend.background = element_rect(fill="transparent")) +
-#   expand_limits(x = 2004) +
-#   scale_x_continuous(expand = c(0, 0))
-
-# ggplot(mydata, aes(x=year, y=form4, group=is41, color=is41)) +
-#   geom_smooth() +
-#   scale_color_manual(name="",
-#                      values=c("firebrick","steelblue"),
-#                      labels=c("Non - Chapter 41 Districts","Chapter 41 Districts")) +
-#   labs(y="Total Revenue / ADA",
-#        title="Revenue per Student") +
-#   theme(legend.position = c(0.2, 0.95),
-#        legend.background = element_rect(fill="transparent")) +
-#   expand_limits(x = 2004) +
-#   scale_x_continuous(expand = c(0, 0))
-
-
-# ggplot(mydata, aes(x=year, y=form3, group=is41, color=is41)) +
-#   geom_smooth() +
-#   scale_color_manual(name="",
-#                      values=c("firebrick","steelblue"),
-#                      labels=c("Non - Chapter 41 Districts","Chapter 41 Districts")) +
-#   labs(y="(Total Revenue - Chapter 41) / ADA",
-#        title="Revenue per Student\nAdjusted for Chapter 41") +
-#   theme(legend.position = c(0.2, 0.95),
-#        legend.background = element_rect(fill="transparent")) +
-#   expand_limits(x = 2004) +
-#   scale_x_continuous(expand = c(0, 0))
-
-
-# ggplot(mydata[is41==TRUE,chap41,by=.(year)], aes(x=year, y=form4)) +
-#   geom_smooth() 
-
-# load("myData.RData")
-# TSC <- data.table(read.csv("TSC.csv"))
-# TSC[,District.Name:=toupper(District.Name)]
-
-# TSC$District.Name[!(TSC$District.Name %in% mydata$`District Name`)]
-# tmpname <- TSC$District.Name[!(TSC$District.Name %in% mydata$`District Name`)][1]
-# tmpname
-# TSC[District.Name==tmpname, District.Name:="IRAAN-SHEFFIELD ISD"]
-# mydata[grepl("IRAAN",`District Name`)]
-
-
-# TSC[,TSC:=TRUE]
-# setnames(TSC,"District.Name", "District Name")
-# setkey(TSC,`District Name`)
-# setkey(mydata,`District Name`)
-
-# save(mydata, file="mydata.RData")
-
-
-load("myData.RData")
 austin <- data.table(read.csv("austin.csv"))
 austin[,`District.Name`:=toupper(`District.Name`)]
 
 austin$District.Name[!(austin$District.Name %in% mydata$`District Name`)]
-austin$District.Name[(austin$District.Name %in% mydata$`District Name`)]
-
-# tmpname <- TSC$District.Name[!(TSC$District.Name %in% mydata$`District Name`)][1]
-# tmpname
-# TSC[District.Name==tmpname, District.Name:="IRAAN-SHEFFIELD ISD"]
-# mydata[grepl("IRAAN",`District Name`)]
+mydata[`District Name` %in% austin$District.Name, austin:=TRUE]
 
 
-austin[,austin:=TRUE]
-setnames(austin,"District.Name", "District Name")
-setkey(austin,`District Name`)
-setkey(mydata,`District Name`)
-
-mydata <- austin[mydata]
+####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### Houston Metro Area
+####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 houston <- data.table(read.csv("greater_houston.csv"))
 houston[,`District.Name`:=toupper(`District.Name`)]
 
 houston$District.Name[!(houston$District.Name %in% mydata$`District Name`)]
-houston$District.Name[(houston$District.Name %in% mydata$`District Name`)]
 
-tmpname <- houston$District.Name[!(houston$District.Name %in% mydata$`District Name`)][1]
-tmpname
-mydata[grepl("LAMAR",`District Name`)]
-houston[District.Name==tmpname, District.Name:="LAMAR CISD"]
+houston[District.Name=="GOOSE CREEK ISD", District.Name:="GOOSE CREEK CISD"]
+houston[District.Name=="LAPORTE ISD", District.Name:="LA PORTE ISD"]
+houston[District.Name=="LAMAR CONS ISD", District.Name:="LAMAR CISD"]
 
+houston$District.Name[!(houston$District.Name %in% mydata$`District Name`)]
 
-houston[,houston:=TRUE]
-setnames(houston,"District.Name", "District Name")
-setkey(houston,`District Name`)
-setkey(mydata,`District Name`)
+mydata[`District Name` %in% houston$District.Name, houston:=TRUE]
 
-mydata <- houston[mydata]
+####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### Dallas - Fort Worth
+####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 dfw <- data.table(read.csv("DFW.csv"))
 dfw[,`District.Name`:=toupper(`District.Name`)]
 
 dfw$District.Name[!(dfw$District.Name %in% mydata$`District Name`)]
-dfw$District.Name[(dfw$District.Name %in% mydata$`District Name`)]
 
-tmpname <- dfw$District.Name[!(dfw$District.Name %in% mydata$`District Name`)][1]
-tmpname
-mydata[grepl("HIGHLAND",`District Name`)]
-dfw[District.Name==tmpname, District.Name:="HIGHLAND PARK ISD (DALLAS)"]
+dfw[District.Name=="CARROLLTON-FARMERS BRANCH ISD   ", District.Name:="CARROLLTON-FARMERS BRANCH ISD"]
+dfw[District.Name=="EAGLE MOUNTAIN-SAGINAW ISD", District.Name:="EAGLE MT-SAGINAW ISD"]
+dfw[District.Name=="HIGHLAND PARK ISD", District.Name:="HIGHLAND PARK ISD (DALLAS)"]
+
+dfw$District.Name[!(dfw$District.Name %in% mydata$`District Name`)]
+
+mydata[`District Name` %in% dfw$District.Name, dfw:=TRUE]
 
 
-dfw[,dfw:=TRUE]
-setnames(dfw,"District.Name", "District Name")
-setkey(dfw,`District Name`)
-setkey(mydata,`District Name`)
+####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### San Antonio Area
+####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-mydata <- dfw[mydata]
+gsa <- data.table(read.csv("san_antonio.csv"))
+gsa[,`District.Name`:=toupper(`District.Name`)]
+
+gsa$District.Name[!(gsa$District.Name %in% mydata$`District Name`)]
+
+gsa$District.Name[!(gsa$District.Name %in% mydata$`District Name`)]
+
+gsa[District.Name=="SCHERTZ−CIBOLO−U CITY ISD", District.Name:="SCHERTZ-CIBOLO-U CITY ISD"]
+
+gsa$District.Name[!(gsa$District.Name %in% mydata$`District Name`)]
+
+mydata[`District Name` %in% gsa$District.Name, gsa:=TRUE]
+
+
+
+####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### Equity Center
+####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+eq <- as.data.table(read.csv("equity.csv"))
+eq[District.Name=="HUTTO ISD \\ IDALOU ISD", District.Name:="HUTTO ISD"]
+eq <- rbind(eq, data.table(District.Name="IDALOU ISD"))
+eq[!(District.Name %in% mydata$`District Name`) & grepl("\\(",District.Name),
+   District.Name := sapply(strsplit(District.Name," "), function(x) {
+      ln <- length(x)
+      paste(paste(x[-(ln-1)], collapse=" "),x[(ln-1)])
+    })
+]
+
+eq$District.Name[!(eq$District.Name %in% mydata$`District Name`)]
+
+eq[District.Name=="COMO-PICKTON ISD", District.Name:="COMO-PICKTON CISD"]
+eq[District.Name=="CROSBYTON ISD", District.Name:="CROSBYTON CISD"]
+eq[District.Name=="EAGLE MT.-SAGINAW ISD", District.Name:="EAGLE MT-SAGINAW ISD"]
+eq[District.Name=="EDGEWOOD (VAN ISD ZANDT)", District.Name:="EDGEWOOD ISD (VAN ZANDT)"]
+eq[District.Name=="ERA CON ISD", District.Name:="ERA ISD"]
+eq[District.Name=="FORT DAVIS ISD", District.Name:="FT DAVIS ISD"]
+eq[District.Name=="GOLD-BURG ISD", District.Name:="GOLD BURG ISD"]
+eq[District.Name=="GOOSE CREEK ISD", District.Name:="GOOSE CREEK CISD"]
+eq[District.Name=="KNOX CITY-O'BRIEN ISD", District.Name:="KNOX CITY-O'BRIEN CISD"]
+eq[District.Name=="LA POYNOR ISD", District.Name:="LAPOYNOR ISD"]
+eq[District.Name=="LEVERETT'S CHAPEL ISD", District.Name:="LEVERETTS CHAPEL ISD"]
+eq[District.Name=="TERLINGUA COMMON SD", District.Name:="TERLINGUA CSD"]
+eq[District.Name=="THREE WAY ISD (ERATH)", District.Name:="THREE WAY ISD"]
+eq[District.Name=="ZAPATA ISD", District.Name:="ZAPATA COUNTY ISD"]
+
+eq$District.Name[!(eq$District.Name %in% mydata$`District Name`)]
+
+mydata[`District Name` %in% eq$District.Name, equity:=TRUE]
+
+
+####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### Fast Growth Districts
+####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+fgsd <- as.data.table(read.csv("fast_growth.csv"))
+fgsd[,`District.Name`:=toupper(`District.Name`)]
+
+
+fgsd$District.Name[!(fgsd$District.Name %in% mydata$`District Name`)]
+
+fgsd[District.Name=="GOOSE CREEK ISD", District.Name:="GOOSE CREEK CISD"]
+fgsd[District.Name=="HAYS CONSOLIDATED ISD", District.Name:="HAYS CISD"]
+fgsd[District.Name=="NORTHSIDE ISD", District.Name:="NORTHSIDE ISD (BEXAR)"]
+fgsd[District.Name=="SCHERTZ-CIBOLO-UNIVERSAL CITY ISD", District.Name:="SCHERTZ-CIBOLO-U CITY ISD"]
+
+fgsd$District.Name[!(fgsd$District.Name %in% mydata$`District Name`)]
+
+mydata[`District Name` %in% fgsd$District.Name, fgsd:=TRUE]
+
+
+
+####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### Texas School Coalition
+####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+tsc <- as.data.table(read.csv("tsc.csv"))
+tsc[,`District.Name`:=toupper(`District.Name`)]
+
+tsc$District.Name[!(tsc$District.Name %in% mydata$`District Name`)]
+
+tsc[District.Name=="CROCKETT COUNTY CCSD", District.Name:="CROCKETT COUNTY CONSOLIDATED CSD"]
+tsc[District.Name=="DAWSON ISD (DAWSON COUNTY)", District.Name:="DAWSON ISD (DAWSON)"]
+tsc[District.Name=="GLASSCOCK CO. ISD", District.Name:="GLASSCOCK COUNTY ISD"]
+tsc[District.Name=="GOOSE CREEK ISD", District.Name:="GOOSE CREEK CISD"]
+tsc[District.Name=="HIGHLAND PARK ISD (AMARILLO)", District.Name:="HIGHLAND PARK ISD (POTTER)"]
+tsc[District.Name=="IRAAN SHEFFIELD ISD", District.Name:="IRAAN-SHEFFIELD ISD"]
+
+tsc$District.Name[!(tsc$District.Name %in% mydata$`District Name`)]
+
+mydata[`District Name` %in% tsc$District.Name, TSC:=TRUE]
+
+####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#### Chapter 41
+####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+mydata
+
+
 
 save(mydata, file="mydata.RData")
