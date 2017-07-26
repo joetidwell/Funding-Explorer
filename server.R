@@ -15,7 +15,7 @@ theme_set(theme_classic())
 # path.data <- file.path("/srv/shiny-server/Funding-Explorer/data")
 load("data/mydata.RData")
 
-# exclude districts who don;t collect taxes, i.e. charter and federal school
+# exclude districts who don't collect taxes, i.e. charter and federal school
 mydata <- mydata[`Local Taxes`>0]
 
 dcolor <- c("steelblue","#EE8A12")
@@ -77,7 +77,7 @@ tsfplot1 <- function(input, txtsize=1, inflation=FALSE) {
         data[,color:="grey"]
         data[`District Name`==input$primary_district, color:=dcolor[1]]
         data[`District Name`==input$secondary_district, color:=dcolor[2]]
-        data[,value:=eval(parse(text=eq[name==input$formula2]$form))]
+        data[,value:=eval(parse(text=eq[name==input$formula]$form))]
         if(inflation) {
           data[,value:=value*inf.factor]
         }
@@ -157,7 +157,7 @@ fplot2 <- function(input, txtsize=3, title="Texas") {
 
 tsfplot2 <- function(input, txtsize=1, inflation=FALSE, groups) {
         data <- mydata
-        data[,value:=eval(parse(text=eq[name==input$formula2]$form))]
+        data[,value:=eval(parse(text=eq[name==input$formula]$form))]
         if(inflation) {
           data[,value:=value*inf.factor]
         }
@@ -174,18 +174,19 @@ tsfplot2 <- function(input, txtsize=1, inflation=FALSE, groups) {
         tsdata.houston <- data[houston==TRUE,as.list(quantile(value,c(.25,.5,.75))),by=year]
         tsdata.dfw <- data[dfw==TRUE,as.list(quantile(value,c(.25,.5,.75))),by=year]
         tsdata.austin <- data[austin==TRUE,as.list(quantile(value,c(.25,.5,.75))),by=year]
-
+        tsdata.equity <- data[equity==TRUE,as.list(quantile(value,c(.25,.5,.75))),by=year]
 
         alldata <- rbind(tsdata[,.(year,`25%`,`50%`,`75%`,group="Texas")],
                          tsdata.41[,.(year,`25%`,`50%`,`75%`,group="Chapter 41")],
                          tsdata.not41[,.(year,`25%`,`50%`,`75%`,group="Non Chapter 41")],
                          tsdata.gsa[,.(year,`25%`,`50%`,`75%`,group="Greater San Antonio")],
-                         tsdata.tsc[,.(year,`25%`,`50%`,`75%`,group="TSC")],
+                         tsdata.tsc[,.(year,`25%`,`50%`,`75%`,group="Texas School Coalition")],
                          tsdata.fgsd[,.(year,`25%`,`50%`,`75%`,group="Fast-Growth")],
                          tsdata.d1[,.(year,`25%`,`50%`,`75%`,group=input$primary_district)],
                          tsdata.austin[,.(year,`25%`,`50%`,`75%`,group="Greater Austin")],
                          tsdata.houston[,.(year,`25%`,`50%`,`75%`,group="Greater Houston")],
-                         tsdata.dfw[,.(year,`25%`,`50%`,`75%`,group="Dallas-Fort Worth")])
+                         tsdata.dfw[,.(year,`25%`,`50%`,`75%`,group="Dallas-Fort Worth")],
+                         tsdata.equity[,.(year,`25%`,`50%`,`75%`,group="Equity Center")])
 
         if(input$secondary_district!="NONE") {
           alldata <- rbind(alldata, tsdata.d2[,.(year,`25%`,`50%`,`75%`,group=input$secondary_district)])
@@ -195,13 +196,14 @@ tsfplot2 <- function(input, txtsize=1, inflation=FALSE, groups) {
                                            "Chapter 41",
                                            "Non Chapter 41",
                                            "Greater San Antonio",
-                                           "TSC",
+                                           "Texas School Coalition",
                                            "Fast-Growth",
                                            input$primary_district,
                                            input$secondary_district,
                                            "Greater Austin",
                                            "Dallas-Fort Worth",
-                                           "Greater Houston"))]        
+                                           "Greater Houston",
+                                           "Equity Center"))]        
 
           dt.color <- data.table(group=levels(alldata$group),
                                  color=c("black",
@@ -214,7 +216,8 @@ tsfplot2 <- function(input, txtsize=1, inflation=FALSE, groups) {
                                          dcolor[2],
                                          "hotpink4",
                                          "thistle",
-                                         "khaki4"))
+                                         "khaki4",
+                                         "brown"))
         } else {
 
           alldata[,group:=ordered(group, 
@@ -227,7 +230,8 @@ tsfplot2 <- function(input, txtsize=1, inflation=FALSE, groups) {
                                            input$primary_district,
                                            "Greater Austin",
                                            "Dallas-Fort Worth",
-                                           "Greater Houston"))]        
+                                           "Greater Houston",
+                                           "Equity Center"))]        
 
           dt.color <- data.table(group=levels(alldata$group),
                                  color=c("black",
@@ -239,7 +243,8 @@ tsfplot2 <- function(input, txtsize=1, inflation=FALSE, groups) {
                                          dcolor[1],
                                          "hotpink4",
                                          "thistle",
-                                         "khaki4"))
+                                         "khaki4",
+                                         "brown"))
         }
 
 
@@ -410,6 +415,41 @@ fplot5 <- function(input, txtsize=3, title="Fast Growth Districts") {
           guides(fill=FALSE, color=FALSE) 
 }
 
+fplot6 <- function(input, txtsize=3, title="Equity Districts") {
+        data <- mydata[equity==TRUE & year==input$year,]
+        data[,color:="grey"]
+        data[,tcolor:="black"]
+        data[`District Name`==input$primary_district, color:=dcolor[1]]
+        # data[`District Name`==input$primary_district, tcolor:="white"]
+        data[`District Name`==input$secondary_district, color:=dcolor[2]]
+        data[,value:=eval(parse(text=eq[name==input$formula]$form))]
+        data[,hjust := ifelse(value > 0, "left", "right")]
+    
+        s <- sd(data$value)
+        # data <- data[value<(median(value) + 5*s)]    
+        # data <- data[value>(median(value) - 5*s)]    
+        
+        Fn <- ecdf(data$value)
+
+        data[,percentile:=Fn(value)]
+        ddata <- rbind(data[`District Name` == input$primary_district],
+                       data[`District Name` == input$secondary_district])
+
+
+
+        ggplot(data, aes(x=value,y=percentile)) +
+          geom_line(size=1) +
+          geom_label(data=ddata, aes(x=value,
+                                     y=percentile, 
+                                     label=gsub(" ISD","",`District Name`)),
+                    color=ddata$tcolor, fill=ddata$color, size=3) +
+          # scale_fill_manual(values=dcolor) +
+          # scale_color_manual(values=tcolor) +
+          expand_limits(y = 0) +
+          scale_y_continuous(expand = c(0, 0)) +
+          labs(y="Percentile", title=title, x=paste0(data$year[1]," : ",input$formula)) +
+          guides(fill=FALSE, color=FALSE) 
+}
 
 
 shinyServer(function(input, output, session) {
@@ -595,6 +635,31 @@ shinyServer(function(input, output, session) {
                  color=mycol)
       })
 
+   equitybox <- reactive({
+      if(!is.null(input$radio)) {
+        mycol <- ifelse(input$radio==1, "blue", "yellow")
+        # data <- mydata[fgsd==TRUE & year==input$year]
+        data <- mydata[equity==TRUE & year==input$year]
+
+        data[,value:=eval(parse(text=eq[name==input$formula]$form))]
+        Fn <- ecdf(data$value)
+        data[,per:=Fn(value)]
+        if(input$radio==1) {
+          txt <- paste0(as.integer((data[`District Name`==input$primary_district]$per*100)),"%")
+        } else {
+          txt <- paste0(as.integer((data[`District Name`==input$secondary_district]$per*100)),"%")
+        }
+
+        if(txt=="%") txt <- "--%"
+
+      } else {
+        txt<-"--%"
+        mycol <- "blue"
+      }
+        # valueBox(txt, "In Fast Growth Districts", icon = icon("line-chart"), 
+        valueBox(txt, "In Equity Center Districts", icon = icon("balance-scale"), 
+                 color=mycol)
+      })
 
 
 
@@ -608,7 +673,8 @@ shinyServer(function(input, output, session) {
                '5' = statebox(),
                '6' = Chap41box(),
                '7' = TSCbox(),
-               '8' = FGSDbox())   
+               '8' = FGSDbox(),
+               '9' = equitybox())   
     }  
   })
    
@@ -616,28 +682,30 @@ shinyServer(function(input, output, session) {
   output$vbox2 <- renderValueBox({
     if(!is.null(input$selectPlot2)) {
          switch(input$selectPlot2,  
-           '1' = GSAbox(),
-           '2' = GSAbox(),
-           '3' = GSAbox(),
-           '4' = GSAbox(),
-           '5' = statebox(),
-           '6' = Chap41box(),
-           '7' = TSCbox(),
-           '8' = FGSDbox())     
+               '1' = GSAbox(),
+               '2' = GSAbox(),
+               '3' = GSAbox(),
+               '4' = GSAbox(),
+               '5' = statebox(),
+               '6' = Chap41box(),
+               '7' = TSCbox(),
+               '8' = FGSDbox(),
+               '9' = equitybox())   
     }
   })
 
   output$vbox3 <- renderValueBox({
     if(!is.null(input$selectPlot3)) {    
      switch(input$selectPlot3,  
-           '1' = GSAbox(),
-           '2' = GSAbox(),
-           '3' = GSAbox(),
-           '4' = GSAbox(),
-           '5' = statebox(),
-           '6' = Chap41box(),
-           '7' = TSCbox(),
-           '8' = FGSDbox())       
+               '1' = GSAbox(),
+               '2' = GSAbox(),
+               '3' = GSAbox(),
+               '4' = GSAbox(),
+               '5' = statebox(),
+               '6' = Chap41box(),
+               '7' = TSCbox(),
+               '8' = FGSDbox(),
+               '9' = equitybox())   
    }
   })
 
@@ -689,9 +757,9 @@ shinyServer(function(input, output, session) {
   })
 
   # Drop-down selection box for which formula
-  output$choose_formula_time <- renderUI({
-    selectInput("formula2", NULL, as.list(eq$name))
-  })
+  # output$choose_formula_time <- renderUI({
+  #   selectInput("formula2", NULL, as.list(eq$name))
+  # })
 
   # Drop-down selection box for which year
   output$choose_year <- renderUI({
@@ -714,7 +782,8 @@ shinyServer(function(input, output, session) {
              '5' = fplot2(input, txtsize=1, title=""),
              '6' = fplot3(input, txtsize=1, title=""),
              '7' = fplot4(input, txtsize=1, title=""),
-             '8' = fplot5(input, txtsize=1, title=""))
+             '8' = fplot5(input, txtsize=1, title=""),
+             '9' = fplot6(input, txtsize=1, title=""))
       }
   })
 
@@ -728,7 +797,8 @@ shinyServer(function(input, output, session) {
              '5' = fplot2(input, txtsize=3, title="State-Wide"),
              '6' = fplot3(input, txtsize=3, title="Chapter 41 Districts"),
              '7' = fplot4(input, txtsize=3, title="Texas School Coalition"),
-             '8' = fplot5(input, txtsize=3, title="Fast Growth Districts"))
+             '8' = fplot5(input, txtsize=3, title="Fast Growth Districts"),
+             '9' = fplot6(input, txtsize=3, title="Equity Center Districts"))
     }
   })
 
@@ -738,13 +808,13 @@ shinyServer(function(input, output, session) {
 ####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
   output$tsplot1 <- renderPlot({
-    if(!(is.null(input$formula2) | is.null(input$primary_district))) {
+    if(!(is.null(input$formula) | is.null(input$primary_district2))) {
         tsfplot1(input, txtsize=1, ifelse(input$inflation==TRUE, TRUE, FALSE))
       }
   })
 
   output$tsplot1L <- renderPlot({
-    if(!(is.null(input$formula2) | is.null(input$primary_district))) {
+    if(!(is.null(input$formula) | is.null(input$primary_district2))) {
         tsfplot1(input, txtsize=3,ifelse(input$inflation==TRUE, TRUE, FALSE))
       }
   })
@@ -768,7 +838,8 @@ shinyServer(function(input, output, session) {
              '5' = fplot2(input, txtsize=1, title=""),
              '6' = fplot3(input, txtsize=1, title=""),
              '7' = fplot4(input, txtsize=1, title=""),
-             '8' = fplot5(input, txtsize=1, title=""))
+             '8' = fplot5(input, txtsize=1, title=""),
+             '9' = fplot6(input, txtsize=1, title=""))
       }
   })
 
@@ -782,7 +853,8 @@ shinyServer(function(input, output, session) {
              '5' = fplot2(input, txtsize=3, title="State-Wide"),
              '6' = fplot3(input, txtsize=3, title="Chapter 41 Districts"),
              '7' = fplot4(input, txtsize=3, title="Texas School Coalition"),
-             '8' = fplot5(input, txtsize=3, title="Fast Growth Districts"))
+             '8' = fplot5(input, txtsize=3, title="Fast Growth Districts"),
+             '9' = fplot6(input, txtsize=3, title="Equity Center Districts"))
     }
   })
 
@@ -794,13 +866,13 @@ shinyServer(function(input, output, session) {
 
 
   output$tsplot2 <- renderPlot({
-    if(!(is.null(input$formula2) | is.null(input$primary_district))) {
+    if(!(is.null(input$formula) | is.null(input$primary_district))) {
       tsfplot2(input, txtsize=3,ifelse(input$inflation==TRUE, TRUE, FALSE),input$tsgroups)
     }
   })
 
   output$tsplot2L <- renderPlot({
-    if(!(is.null(input$formula2) | is.null(input$primary_district))) {
+    if(!(is.null(input$formula) | is.null(input$primary_district))) {
       tsfplot2(input, txtsize=3,ifelse(input$inflation==TRUE, TRUE, FALSE),input$tsgroups)
     }
   })
@@ -822,7 +894,8 @@ shinyServer(function(input, output, session) {
              '5' = fplot2(input, txtsize=1, title=""),
              '6' = fplot3(input, txtsize=1, title=""),
              '7' = fplot4(input, txtsize=1, title=""),
-             '8' = fplot5(input, txtsize=1, title=""))
+             '8' = fplot5(input, txtsize=1, title=""),
+             '9' = fplot6(input, txtsize=1, title=""))
       }
   })
 
@@ -836,7 +909,8 @@ shinyServer(function(input, output, session) {
              '5' = fplot2(input, txtsize=3, title="State-Wide"),
              '6' = fplot3(input, txtsize=3, title="Chapter 41 Districts"),
              '7' = fplot4(input, txtsize=3, title="Texas School Coalition"),
-             '8' = fplot5(input, txtsize=3, title="Fast Growth Districts"))
+             '8' = fplot5(input, txtsize=3, title="Fast Growth Districts"),
+             '9' = fplot6(input, txtsize=3, title="Equity Center Districts"))
     }
   })
 
@@ -929,13 +1003,14 @@ shinyServer(function(input, output, session) {
                 "Greater Houston",
                 "Greater San Antonio",
                 "Texas",
+                "Equity Center",
                 "Chapter 41",
                 "Non Chapter 41",
-                "TSC",
+                "Texas School Coalition",
                 "Fast-Growth")
     checkboxGroupInput("tsgroups", NA,
                      choices=choices,
-                     selected=choices[c(7,8,11)])
+                     selected=choices[c(7,8,9)])
   })
 
 
