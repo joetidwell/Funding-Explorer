@@ -255,7 +255,7 @@ tsfplot2 <- function(input, txtsize=1, inflation=FALSE, groups) {
           # geom_ribbon(aes(ymin=`25%`, ymax=`75%`), fill="lightgrey", alpha=.35) +
           labs(x="Year",
               y=ifelse(inflation, "2015 Dollars", "Dollars"),
-              title=paste(input$formula2)) +
+              title=paste(input$formula)) +
           scale_x_continuous(expand = c(0, 0), 
                              limits=c(min(data$year),max(data$year)+1),
                              breaks= pretty_breaks()) +
@@ -709,7 +709,6 @@ shinyServer(function(input, output, session) {
    }
   })
 
-   
 
   # Change current district focus
   observeEvent(input$radio, {
@@ -753,7 +752,7 @@ shinyServer(function(input, output, session) {
 
   # Drop-down selection box for which formula
   output$choose_formula <- renderUI({
-    selectInput("formula", NULL, as.list(eq$name))
+    selectInput("formula", NULL, as.list(eq$name), selected="(Total Revenue-Chap41)/WADA")
   })
 
   # Drop-down selection box for which formula
@@ -1013,6 +1012,7 @@ shinyServer(function(input, output, session) {
                      selected=choices[c(7,8,9)])
   })
 
+  output$selected_formula <- renderText(input$formula)
 
 })
 

@@ -13,10 +13,15 @@ options(stringsAsFactors = FALSE)
 #### Finance Data
 ####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-dat.wada <- data.table(read.csv("2005-2015_ADA_WADA.csv"))
-dat.finance <- data.table(read.csv("2000-2015_Summarized_Financial_Data.csv"))  
+# dat.wada <- data.table(read.csv("2005-2015_ADA_WADA.csv"))
+dat.wada <- data.table(read.csv("ADA and WADA 2005-2016.csv"))
 setnames(dat.wada,gsub("X","",gsub("X\\.","X",names(dat.wada))))
+setnames(dat.wada,gsub("..",".",names(dat.wada),fixed=TRUE))
+
+# dat.finance <- data.table(read.csv("2000-2015_Summarized_Financial_Data.csv"))  
+dat.finance <- data.table(read.csv("2000-2016_Summarized_Financial_Data.csv"))  
 setnames(dat.finance,"DISTRICT.NUMBER","CDN")
+dat.finance[,CDN:=as.integer(gsub("'","",CDN))]
 
 dat.wada[, DISTRICT.NAME:=NULL]
 dat.wada <- data.table::melt(dat.wada,
@@ -251,7 +256,7 @@ tsc$District.Name[!(tsc$District.Name %in% mydata$`District Name`)]
 mydata[`District Name` %in% tsc$District.Name, TSC:=TRUE]
 
 ####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#### Chapter 41
+#### Tax Rates
 ####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 mydata
