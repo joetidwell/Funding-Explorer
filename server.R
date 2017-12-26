@@ -762,7 +762,7 @@ shinyServer(function(input, output, session) {
 
   # Drop-down selection box for which year
   output$choose_year <- renderUI({
-    selectInput("year", NULL, as.list(unique(mydata$year)), selected=2014)
+    selectInput("year", NULL, as.list(unique(mydata$year)), selected=2015)
   })
 
 
