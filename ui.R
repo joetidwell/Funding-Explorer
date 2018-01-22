@@ -2,6 +2,7 @@ library(shiny)
 library(shinyBS)
 library(shinydashboard)
 library(data.table)
+library(plotly)
 
 load("data/mydata.RData")
 mydata <- mydata[`Local Taxes`>0]
@@ -9,6 +10,7 @@ mydata <- mydata[`Local Taxes`>0]
 
 districtChoices <- sort(unique(mydata$`District Name`))
 names(districtChoices) <- districtChoices
+
 
 library(shinydashboard)
 
@@ -35,7 +37,7 @@ dashboardPage(
               solidHeader = TRUE,
               status = "primary",
               width = 10,
-              HTML("<div style='width: 100%; text-align: center; font-size: 1.25em;'>You must click on the <span style='font-weight: bold;'>Settings</span> tab before viewing any reports.</div>")
+              HTML("<div style='width: 100%; text-align: center; font-size: 1.25em; background-color: red; color: white;' '>You must click on the <span style='font-weight: bold;'>Settings</span> tab before viewing any reports.</div>")
             )
           ),
           fluidRow(
@@ -120,13 +122,23 @@ dashboardPage(
       ),
       tabItem(tabName = "plots",
         fluidPage(
+          tags$div(tags$style(HTML( ".selectize-dropdown, .selectize-dropdown.form-control{z-index:10000;}"))),
           fluidRow(
-            titlePanel("Percentile Ranks"),
-            HTML(paste0("<h3><code>",textOutput("selected_formula"),"</code></h3>")),
-            uiOutput("radioDist"),
+            titlePanel("Formula"),
+            HTML(paste0("<h3><code>",textOutput("selected_formula"),"</code></h3>"))
+          ),
+          fluidRow(
+            titlePanel("Percentiles"),
+            uiOutput("dist_1"),
             valueBoxOutput("vbox1", width=4),
             valueBoxOutput("vbox2", width=4),
             valueBoxOutput("vbox3", width=4)
+          ),        
+          fluidRow(
+            uiOutput("dist_2"),
+            valueBoxOutput("vbox4", width=4),
+            valueBoxOutput("vbox5", width=4),
+            valueBoxOutput("vbox6", width=4)
           ),        
           fluidRow(
             titlePanel("Plots"),
@@ -141,10 +153,12 @@ dashboardPage(
                                            "Texas School Coalition" = 7,
                                            "Fast Growth Districts" = 8),
                             selected = 4),
-                plotOutput("plot1", height = 250), 
-                actionButton("save1", "Zoom/Download"),
+                plotlyOutput("plot1", height = 250), 
+                actionButton("save1", "Zoom"),
                 width=4),
-            bsModal("modalPlot1", "Your plot", "save1", size = "large",plotOutput("plot1L", width="75%"),downloadButton('downloadPlot1', 'Download')),
+            bsModal("modalPlot1", "", "save1", size = "large",
+              plotlyOutput("plot1L", width="95%")
+            ),            
             box(selectInput("selectPlot2", label = NA, 
                             choices = list("Greater Austin" = 1,
                                            "Dallas-Fort Worth" = 2,
@@ -156,10 +170,10 @@ dashboardPage(
                                            "Texas School Coalition" = 7,
                                            "Fast Growth Districts" = 8),
                             selected = 5),
-                plotOutput("plot2", height = 250), 
-                actionButton("save2", "Zoom/Download"),
+                plotlyOutput("plot2", height = 250), 
+                actionButton("save2", "Zoom"),
                 width=4),
-            bsModal("modalPlot2", "Your plot", "save2", size = "large",plotOutput("plot2L", width="75%"),downloadButton('downloadPlot2', 'Download')),
+            bsModal("modalPlot2", "", "save2", size = "large",plotlyOutput("plot2L", width="75%")),
             box(selectInput("selectPlot3", label = NA, 
                              choices = list("Greater Austin" = 1,
                                            "Dallas-Fort Worth" = 2,
@@ -171,10 +185,10 @@ dashboardPage(
                                            "Texas School Coalition" = 7,
                                            "Fast Growth Districts" = 8),
                             selected = 8),
-                plotOutput("plot3", height = 250), 
-                actionButton("save3", "Zoom/Download"),
+                plotlyOutput("plot3", height = 250), 
+                actionButton("save3", "Zoom"),
                 width=4),
-            bsModal("modalPlot3", "Your plot", "save3", size = "large",plotOutput("plot3L", width="75%"),downloadButton('downloadPlot3', 'Download'))
+            bsModal("modalPlot3", "", "save3", size = "large",plotlyOutput("plot3L", width="75%"))
           )
         )
       ),
@@ -182,10 +196,13 @@ dashboardPage(
         fluidPage(
           fluidRow(
             titlePanel("Time Series"),
-            box(plotOutput("tsplot2", height = 250), 
-                actionButton("tssave2", "Zoom/Download"),
+            HTML(paste0("<h3><code>",textOutput("selected_formula2"),"</code></h3>")),
+            box(plotlyOutput("tsplot2", height = 250), 
+                actionButton("tssave2", "Zoom"),
                 width=7),
-            bsModal("tsmodalPlot2", "Your plot", "tssave2", size = "large",plotOutput("tsplot2L", width="75%"),downloadButton('tsdownloadPlot2', 'Download')),
+            bsModal("tsmodalPlot2", "", "tssave2", size = "large",
+              plotlyOutput("tsplot2L", width="95%")
+            ),
             box(title="Groups to display:",
                 solidHeader=TRUE,
                 status="primary",
@@ -247,18 +264,12 @@ dashboardPage(
               tags$ul(
                 tags$li(HTML("<code>Local Taxes / ADA</code> - <em>Total revenue collected from local property taxes divided by the average daily student attendance (ADA) for the district.</em>")),  
                 tags$li(HTML("<code>Total Revenue / WADA</code> - <em>Total revenue for the district divided by the weighted average daily student attendance (WADA) for the district. WADA is calculated from a complex set of formulas, defined by the state, that attempts to determine how much local and state funding a district is entitled to.</em>")),  
-                tags$li(HTML("<code>(Total Revenue - Chap 41) / WADA</code> - <em>Total revenue for the district, minus 'Robin Hood' (Chap 41) tax dollar taken by the state, divided by the weighted average daily student attendance (WADA) for the district. <span style='font-weight: bold; font-size: 1.25em;'>This is the best 'apples to apples' metric to compare finances between districts.</span></em>")),  
-                tags$li(HTML("<code>(Total Revenue - Chap 41) / ADA</code> - <em>Total revenue for the district, minus 'Robin Hood' (Chap 41) tax dollar taken by the state, divided by the average daily student attendance (ADA) for the district. </em>"))  
+                tags$li(HTML("<code>(Total Revenue - Chap 41) / WADA</code> - <em>Total revenue for the district, minus 'Robin Hood' (Chap 41) tax dollars taken by the state, divided by the weighted average daily student attendance (WADA) for the district. <span style='font-weight: bold; font-size: 1.25em;'>This is the best 'apples to apples' metric to compare finances between districts.</span></em>")),  
+                tags$li(HTML("<code>(Total Revenue - Chap 41) / ADA</code> - <em>Total revenue for the district, minus 'Robin Hood' (Chap 41) tax dollars taken by the state, divided by the average daily student attendance (ADA) for the district. </em>"))  
               )              
           )
         )
       ),
-
-                 # desc=c("Local Taxes / ADA",
-                 #        "Total Revenue per WADA",
-                 #        "Total Revenue - Chapter 41 per WADA",
-                 #        "(Total Revenue-Chap41)/ADA"))
-
       tabItem(tabName = "data",
           fluidRow(
             box(
@@ -292,15 +303,6 @@ dashboardPage(
                   tags$li(HTML("<strong>Fast Growth Districts</strong> - <em>School Districts that are members of the Fast Growth School Coalition advocacy organization  </em>"))
                 )
             ),
-                                      # choices = list("Greater Austin" = 1,
-                                      #      "Dallas-Fort Worth" = 2,
-                                      #      "Greater Houston" = 3,
-                                      #      "Greater San Antonio" = 4, 
-                                      #      "State-Wide" = 5, 
-                                      #      "Chapter 41 Districts" = 6,
-                                      #      "Equity Center Districts" = 9,
-                                      #      "Texas School Coalition" = 7,
-                                      #      "Fast Growth Districts" = 8),
             box(
               title="Sources",
               solidHeader=TRUE,

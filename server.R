@@ -4,6 +4,7 @@ library(shinydashboard)
 library(ggplot2)
 library(scales)
 library(data.table)
+library(plotly)
 theme_set(theme_classic())
 
 
@@ -11,7 +12,6 @@ theme_set(theme_classic())
 # load(file.path(path.data,"districts.RData"))
 # path.data <- file.path("~/git/WADA-Explorer/data")
 # load(file.path(path.data,"mydata.RData"))
-
 # path.data <- file.path("/srv/shiny-server/Funding-Explorer/data")
 load("data/mydata.RData")
 
@@ -50,25 +50,65 @@ fplot1 <- function(input, txtsize=1, group="gsa", title="Greater San Antonio") {
         data[,value:=eval(parse(text=eq[name==input$formula]$form))]
         data[,hjust := ifelse(value > 0, "left", "right")]
     
+    print(data)
     
-    
-        ggplot(data, aes(x=reorder(CDN, value), 
-                         y=value,
-                         label=gsub(" ISD","",`District Name`),
-                         hjust=hjust)) +
-          geom_bar(fill=data$color[order(data$value)], position="dodge", stat="identity") +
-          coord_flip() +
-          # scale_fill_manual(values=c("grey","#EE8A12","steelblue")) +
-          # scale_x_discrete(labels=gsub(" ISD", "", data[order(value)]$`District Name`)) +
-          expand_limits(y = 0) +
-          scale_y_continuous(expand = c(0, 0)) +
-          labs(x="", title=title, y=paste0(data$year[1]," : ",input$formula)) +
-          guides(fill=FALSE, color=FALSE) +
-          geom_text(aes(y=0, color=color), size=txtsize) +
-          scale_color_manual(values=c("black","black","white")) +
-          theme(axis.title.y=element_blank(),
-                axis.text.y=element_blank(),
-                axis.ticks.y=element_blank())
+  data <- data[order(value)]
+  data[,`District Name`:=factor(`District Name`, levels=`District Name`)]
+  data[,htext:=paste0("</br>",`District Name`," HOWDY")]
+
+  ax <- list(
+    title="",
+    zeroline = FALSE,
+    showline = FALSE,
+    showticklabels = FALSE,
+    showgrid = FALSE
+  )
+  if(txtsize==1) {
+    f <- list(size=5)
+  } else {
+    f <- list(size=10)
+  }
+  if(txtsize==1) {
+    titlef <- list(size=10)
+  } else {
+    titlef <- list(size=20)
+  }
+
+  plot_ly(
+    data = data,
+    y = ~`District Name`,
+    x = ~value,
+    type = "bar",
+    marker = list(color = ~color),
+    orientation = 'h',
+    text = ~`District Name`, 
+    # textposition = 'auto',
+    # textfont = list(color = '#FFFFFF', size = 16),
+    hoverinfo = 'x+text'
+  ) %>%
+    layout(title=ifelse(txtsize>1,title,""),
+           yaxis = ax,
+           xaxis = list(title=input$formula,
+                        titlefont=titlef),
+           margin = list(l = 10, r=20, t=50),
+           annotations = list(
+            x = ~value,
+            y = ~`District Name`,
+            text = ~`District Name`,
+            # xanchor = ifelse(~value > 0, 'left', 'right'),
+            xanchor = 'left',
+            showarrow = FALSE,
+            font = f
+           )
+    ) %>%
+    config(displayModeBar = ifelse(txtsize>1,TRUE,TRUE),
+           displaylogo = FALSE,
+           collaborate = FALSE,
+           cloud = FALSE,
+           modeBarButtonsToRemove = c('sendDataToCloud','hoverCompareCartesian','zoom2d')
+    )
+
+
 }
 
 
@@ -136,22 +176,46 @@ fplot2 <- function(input, txtsize=3, title="Texas") {
                        data[`District Name` == input$secondary_district])
 
 
+  if(txtsize==1) {
+    f <- list(size=5)
+  } else {
+    f <- list(size=10)
+  }
+  if(txtsize==1) {
+    titlef <- list(size=10)
+  } else {
+    titlef <- list(size=20)
+  }
 
-        ggplot(data, aes(x=value,y=percentile)) +
-          geom_line(size=1) +
-          geom_label(data=ddata, aes(x=value,
-                                     y=percentile, 
-                                     label=gsub(" ISD","",`District Name`)),
-                    color=ddata$tcolor, fill=ddata$color, size=3) +
-          # scale_fill_manual(values=dcolor) +
-          # scale_color_manual(values=tcolor) +
-          expand_limits(y = 0) +
-          scale_y_continuous(expand = c(0, 0)) +
-          labs(y="Percentile", title=title, x=paste0(data$year[1]," : ",input$formula)) +
-          guides(fill=FALSE, color=FALSE) 
-          # theme(axis.title.y=element_blank(),
-          #       axis.text.y=element_blank(),
-          #       axis.ticks.y=element_blank())
+  data <- data[order(percentile)]
+  plot_ly(
+    data = data,
+    y = ~percentile,
+    x = ~value,
+    type = "scatter",
+    mode="lines",
+    hoverinfo = 'text',
+    text = ~paste('</br> District: ', `District Name`,
+                  '</br> Value: ', round(value,2),
+                  '</br> Percentile: ', paste(round(percentile,2)*100,"%") )) %>%
+  add_annotations(x=ddata$value,
+                  y=ddata$percentile,
+                  text=ddata$`District Name`) %>%
+  layout(title=ifelse(txtsize>1,title,""),
+         yaxis = list(title="Percentile"),
+         xaxis = list(title=input$formula,
+                      titlefont=titlef),
+         margin = list(l = 50, r=20, t=50)
+         ) %>%
+  config(displayModeBar = ifelse(txtsize>1,TRUE,TRUE),
+         displaylogo = FALSE,
+         collaborate = FALSE,
+         cloud = FALSE,
+         modeBarButtonsToRemove = c('sendDataToCloud','hoverCompareCartesian','zoom2d')
+  )
+
+
+
 }
 
 
@@ -204,20 +268,6 @@ tsfplot2 <- function(input, txtsize=1, inflation=FALSE, groups) {
                                            "Dallas-Fort Worth",
                                            "Greater Houston",
                                            "Equity Center"))]        
-
-          dt.color <- data.table(group=levels(alldata$group),
-                                 color=c("black",
-                                         "tomato1",
-                                         "orchid",
-                                         "firebrick",
-                                         "slateblue4",
-                                         "forestgreen",
-                                         dcolor[1],
-                                         dcolor[2],
-                                         "hotpink4",
-                                         "thistle",
-                                         "khaki4",
-                                         "brown"))
         } else {
 
           alldata[,group:=ordered(group, 
@@ -233,52 +283,24 @@ tsfplot2 <- function(input, txtsize=1, inflation=FALSE, groups) {
                                            "Greater Houston",
                                            "Equity Center"))]        
 
-          dt.color <- data.table(group=levels(alldata$group),
-                                 color=c("black",
-                                         "tomato1",
-                                         "orchid",
-                                         "firebrick",
-                                         "slateblue4",
-                                         "forestgreen",
-                                         dcolor[1],
-                                         "hotpink4",
-                                         "thistle",
-                                         "khaki4",
-                                         "brown"))
         }
 
+  plot_ly(alldata[group%in%groups], x = ~year, y = ~`50%`, color = ~group,
+             hoverinfo='text',
+             text = ~paste('</br> Group: ', group, 
+                           '</br> Year: ', year,
+                           '</br> Value: ', round(`50%`,2))) %>%
+    add_lines(annotations=NULL) %>% add_markers(showlegend=FALSE) %>%
+    layout(yaxis=list(title="Median", tickformat=",d"),
+           xaxis=list(title="Year"), title=input$formula,
+           margin = list(l = 50, r=20, t=70)) %>%
+  config(displayModeBar = ifelse(txtsize>1,TRUE,TRUE),
+         displaylogo = FALSE,
+         collaborate = FALSE,
+         cloud = FALSE,
+         modeBarButtonsToRemove = c('sendDataToCloud','hoverCompareCartesian','zoom2d')
+  )
 
-
-
-        ggplot(alldata[group%in%groups], aes(x=year, y=`50%`, group=group)) +
-          geom_line(aes(color=group), size=1) +
-          # geom_ribbon(aes(ymin=`25%`, ymax=`75%`), fill="lightgrey", alpha=.35) +
-          labs(x="Year",
-              y=ifelse(inflation, "2015 Dollars", "Dollars"),
-              title=paste(input$formula)) +
-          scale_x_continuous(expand = c(0, 0), 
-                             limits=c(min(data$year),max(data$year)+1),
-                             breaks= pretty_breaks()) +
-          scale_color_manual(name="",
-                             values=dt.color[group%in%groups]$color) 
-
-
-        # ggplot(tsdata, aes(x=year, y=`25%`)) + 
-        #   geom_ribbon(aes(ymin=`25%`,ymax=`75%`), fill="lightgrey", alpha="0.5") +
-        #   geom_ribbon(data=tsdata.41, aes(ymin=`25%`,ymax=`75%`), fill="lightgrey", alpha="0.5") +
-        #   geom_ribbon(data=tsdata.not41, aes(ymin=`25%`,ymax=`75%`), fill="lightgrey", alpha="0.5") +
-        #   geom_line(data=alldata, aes(x=year, y=`50%`, 
-        #                               group=group,
-        #                               color=group), size=1) +
-        #   labs(title="Texas",
-        #       x="Year",
-        #       y=paste(input$formula, ifelse(inflation, "   (2015 Dollars)", ""))) +
-        #   scale_x_continuous(expand = c(0, 0), 
-        #                      limits=c(min(data$year),max(data$year)+1),
-        #                      breaks= pretty_breaks()) +
-        #   scale_color_manual(name="",
-        #                      values=c("black","tomato1","orchid")) +
-        #   theme(legend.position="bottom")
 
 }
 
@@ -305,41 +327,45 @@ fplot3 <- function(input, txtsize=3, title="Chapter 41 Districts") {
 
 
 
-        ggplot(data, aes(x=value,y=percentile)) +
-          geom_line(size=1) +
-          geom_label(data=ddata, aes(x=value,
-                                     y=percentile, 
-                                     label=gsub(" ISD","",`District Name`)),
-                    color=ddata$tcolor, fill=ddata$color, size=3) +
-          # scale_fill_manual(values=dcolor) +
-          # scale_color_manual(values=tcolor) +
-          expand_limits(y = 0) +
-          scale_y_continuous(expand = c(0, 0)) +
-          labs(y="Percentile", title=title, x=paste0(data$year[1]," : ",input$formula)) +
-          guides(fill=FALSE, color=FALSE) 
-          # theme(axis.title.y=element_blank(),
-          #       axis.text.y=element_blank(),
-          #       axis.ticks.y=element_blank())    
-    
+    if(txtsize==1) {
+      f <- list(size=5)
+    } else {
+      f <- list(size=10)
+    }
+    if(txtsize==1) {
+      titlef <- list(size=10)
+    } else {
+      titlef <- list(size=20)
+    }
+
+    data <- data[order(percentile)]
+    plot_ly(
+      data = data,
+      y = ~percentile,
+      x = ~value,
+      type = "scatter",
+      mode="lines",
+      hoverinfo = 'text',
+      text = ~paste('</br> District: ', `District Name`,
+                    '</br> Value: ', round(value,2),
+                    '</br> Percentile: ', paste(round(percentile,2)*100,"%") )) %>%
+    add_annotations(x=ddata$value,
+                    y=ddata$percentile,
+                    text=ddata$`District Name`) %>%
+    layout(title=ifelse(txtsize>1,title,""),
+           yaxis = list(title="Percentile"),
+           xaxis = list(title=input$formula,
+                        titlefont=titlef),
+           margin = list(l = 50, r=20, t=50)
+           ) %>%
+    config(displayModeBar = ifelse(txtsize>1,TRUE,TRUE),
+           displaylogo = FALSE,
+           collaborate = FALSE,
+           cloud = FALSE,
+           modeBarButtonsToRemove = c('sendDataToCloud','hoverCompareCartesian','zoom2d')
+    )
 
 
-        # ggplot(data, aes(x=reorder(CDN, value), 
-        #                  y=value,
-        #                  label=gsub(" ISD","",`District Name`),
-        #                  hjust=hjust)) +
-        #   geom_bar(fill=data$color[order(data$value)], position="dodge", stat="identity") +
-        #   coord_flip() +
-        #   # scale_fill_manual(values=c("grey","#EE8A12","steelblue")) +
-        #   # scale_x_discrete(labels=gsub(" ISD", "", data[order(value)]$`District Name`)) +
-        #   expand_limits(y = 0) +
-        #   scale_y_continuous(expand = c(0, 0)) +
-        #   labs(x="", title="Chapter 41 Districts", y=paste0(data$year[1]," : ",input$formula)) +
-        #   guides(fill=FALSE, color=FALSE) +
-        #   geom_text(aes(y=0), color=data$tcolor[order(data$value)], size=txtsize) +
-        #   scale_color_manual(values=c("black","black","white")) +
-        #   theme(axis.title.y=element_blank(),
-        #         axis.text.y=element_blank(),
-        #         axis.ticks.y=element_blank())
 }
 
 
@@ -363,20 +389,45 @@ fplot4 <- function(input, txtsize=3, title="TSC Districts") {
         ddata <- rbind(data[`District Name` == input$primary_district],
                        data[`District Name` == input$secondary_district])
 
+    if(txtsize==1) {
+      f <- list(size=5)
+    } else {
+      f <- list(size=10)
+    }
+    if(txtsize==1) {
+      titlef <- list(size=10)
+    } else {
+      titlef <- list(size=20)
+    }
+
+    data <- data[order(percentile)]
+    plot_ly(
+      data = data,
+      y = ~percentile,
+      x = ~value,
+      type = "scatter",
+      mode="lines",
+      hoverinfo = 'text',
+      text = ~paste('</br> District: ', `District Name`,
+                    '</br> Value: ', round(value,2),
+                    '</br> Percentile: ', paste(round(percentile,2)*100,"%") )) %>%
+    add_annotations(x=ddata$value,
+                    y=ddata$percentile,
+                    text=ddata$`District Name`) %>%
+    layout(title=ifelse(txtsize>1,title,""),
+           yaxis = list(title="Percentile"),
+           xaxis = list(title=input$formula,
+                        titlefont=titlef),
+           margin = list(l = 50, r=20, t=50)
+           ) %>%
+    config(displayModeBar = ifelse(txtsize>1,TRUE,TRUE),
+           displaylogo = FALSE,
+           collaborate = FALSE,
+           cloud = FALSE,
+           modeBarButtonsToRemove = c('sendDataToCloud','hoverCompareCartesian','zoom2d')
+    )
 
 
-        ggplot(data, aes(x=value,y=percentile)) +
-          geom_line(size=1) +
-          geom_label(data=ddata, aes(x=value,
-                                     y=percentile, 
-                                     label=gsub(" ISD","",`District Name`)),
-                    color=ddata$tcolor, fill=ddata$color, size=3) +
-          # scale_fill_manual(values=dcolor) +
-          # scale_color_manual(values=tcolor) +
-          expand_limits(y = 0) +
-          scale_y_continuous(expand = c(0, 0)) +
-          labs(y="Percentile", title=title, x=paste0(data$year[1]," : ",input$formula)) +
-          guides(fill=FALSE, color=FALSE) 
 }
 
 fplot5 <- function(input, txtsize=3, title="Fast Growth Districts") {
@@ -399,20 +450,45 @@ fplot5 <- function(input, txtsize=3, title="Fast Growth Districts") {
         ddata <- rbind(data[`District Name` == input$primary_district],
                        data[`District Name` == input$secondary_district])
 
+    if(txtsize==1) {
+      f <- list(size=5)
+    } else {
+      f <- list(size=10)
+    }
+    if(txtsize==1) {
+      titlef <- list(size=10)
+    } else {
+      titlef <- list(size=20)
+    }
+
+    data <- data[order(percentile)]
+    plot_ly(
+      data = data,
+      y = ~percentile,
+      x = ~value,
+      type = "scatter",
+      mode="lines",
+      hoverinfo = 'text',
+      text = ~paste('</br> District: ', `District Name`,
+                    '</br> Value: ', round(value,2),
+                    '</br> Percentile: ', paste(round(percentile,2)*100,"%") )) %>%
+    add_annotations(x=ddata$value,
+                    y=ddata$percentile,
+                    text=ddata$`District Name`) %>%
+    layout(title=ifelse(txtsize>1,title,""),
+           yaxis = list(title="Percentile"),
+           xaxis = list(title=input$formula,
+                        titlefont=titlef),
+           margin = list(l = 50, r=20, t=50)
+           ) %>%
+    config(displayModeBar = ifelse(txtsize>1,TRUE,TRUE),
+           displaylogo = FALSE,
+           collaborate = FALSE,
+           cloud = FALSE,
+           modeBarButtonsToRemove = c('sendDataToCloud','hoverCompareCartesian','zoom2d')
+    )
 
 
-        ggplot(data, aes(x=value,y=percentile)) +
-          geom_line(size=1) +
-          geom_label(data=ddata, aes(x=value,
-                                     y=percentile, 
-                                     label=gsub(" ISD","",`District Name`)),
-                    color=ddata$tcolor, fill=ddata$color, size=3) +
-          # scale_fill_manual(values=dcolor) +
-          # scale_color_manual(values=tcolor) +
-          expand_limits(y = 0) +
-          scale_y_continuous(expand = c(0, 0)) +
-          labs(y="Percentile", title=title, x=paste0(data$year[1]," : ",input$formula)) +
-          guides(fill=FALSE, color=FALSE) 
 }
 
 fplot6 <- function(input, txtsize=3, title="Equity Districts") {
@@ -435,20 +511,44 @@ fplot6 <- function(input, txtsize=3, title="Equity Districts") {
         ddata <- rbind(data[`District Name` == input$primary_district],
                        data[`District Name` == input$secondary_district])
 
+    if(txtsize==1) {
+      f <- list(size=5)
+    } else {
+      f <- list(size=10)
+    }
+    if(txtsize==1) {
+      titlef <- list(size=10)
+    } else {
+      titlef <- list(size=20)
+    }
 
+    data <- data[order(percentile)]
+    plot_ly(
+      data = data,
+      y = ~percentile,
+      x = ~value,
+      type = "scatter",
+      mode="lines",
+      hoverinfo = 'text',
+      text = ~paste('</br> District: ', `District Name`,
+                    '</br> Value: ', round(value,2),
+                    '</br> Percentile: ', paste(round(percentile,2)*100,"%") )) %>%
+    add_annotations(x=ddata$value,
+                    y=ddata$percentile,
+                    text=ddata$`District Name`) %>%
+    layout(title=ifelse(txtsize>1,title,""),,
+           yaxis = list(title="Percentile"),
+           xaxis = list(title=input$formula,
+                        titlefont=titlef),
+           margin = list(l = 50, r=20, t=50)
+           ) %>%
+    config(displayModeBar = ifelse(txtsize>1,TRUE,TRUE),
+           displaylogo = FALSE,
+           collaborate = FALSE,
+           cloud = FALSE,
+           modeBarButtonsToRemove = c('sendDataToCloud','hoverCompareCartesian','zoom2d')
+    )
 
-        ggplot(data, aes(x=value,y=percentile)) +
-          geom_line(size=1) +
-          geom_label(data=ddata, aes(x=value,
-                                     y=percentile, 
-                                     label=gsub(" ISD","",`District Name`)),
-                    color=ddata$tcolor, fill=ddata$color, size=3) +
-          # scale_fill_manual(values=dcolor) +
-          # scale_color_manual(values=tcolor) +
-          expand_limits(y = 0) +
-          scale_y_continuous(expand = c(0, 0)) +
-          labs(y="Percentile", title=title, x=paste0(data$year[1]," : ",input$formula)) +
-          guides(fill=FALSE, color=FALSE) 
 }
 
 
@@ -456,45 +556,8 @@ shinyServer(function(input, output, session) {
   set.seed(122)
   histdata <- rnorm(500)
 
-
-   output$current_district <- renderText({ 
-      if(dist1) {
-        input$primary_district
-      } else {
-        input$secondary_district
-      }
-   })
-
-   output$radioDist <- renderUI({
-    mychoices <- list(1,2)
-    names(mychoices) <- c(input$primary_district,input$secondary_district)
-    radioButtons("radio", label = NULL,
-              choices = mychoices, 
-              selected = input$radio,
-              inline=TRUE)
-   })
-
-
-   # output$dist_box <- renderUI({
-   #  if(!is.null(input$radio)) {
-   #    mystatus <- ifelse(input$radio==1, "primary", "warning")      
-   #  } else {
-   #    mystatus <- "primary"
-   #  }
-
-   #    box(title=textOutput("current_district"),
-   #          radioButtons("radio", label = NULL,
-   #            choices = list("Primary" = 1, "Secondary" = 2), 
-   #            selected = input$radio,
-   #            inline=TRUE),
-   #          solidHeader=TRUE, 
-   #          status=mystatus, width=3
-   #        )
-   # })
-
     GSAbox <- reactive({
-      if(!is.null(input$radio) & !is.null(input$formula) & !is.null(input$selectPlot1)) {
-        mycol <- ifelse(input$radio==1, "blue", "yellow")
+      if(!is.null(input$formula) & !is.null(input$selectPlot1)) {
         data <- switch(input$selectPlot1,
           "1" = mydata[austin==TRUE & year==input$year],
           "2" = mydata[dfw==TRUE & year==input$year],
@@ -512,154 +575,191 @@ shinyServer(function(input, output, session) {
         data[,value:=eval(parse(text=eq[name==input$formula]$form))]
         Fn <- ecdf(data$value)
         data[,per:=Fn(value)]
-        if(input$radio==1) {
-          txt <- paste0(as.integer((data[`District Name`==input$primary_district]$per*100)),"%")
-        } else {
-          txt <- paste0(as.integer((data[`District Name`==input$secondary_district]$per*100)),"%")
-        }
+        txt <- paste0(as.integer((data[`District Name`==input$primary_district]$per*100)),"%")
 
         if(txt=="%") txt <- "--%"
 
 
       } else {
-        mycol <- "blue"
         txt<-"--%"
         title<-"---"
       }
         valueBox(txt, title, icon = icon("map-pin"), 
-                 color=mycol)
+                 color="blue")
      
       })
 
 
    statebox <- reactive({
-      if(!is.null(input$radio)) {
-        mycol <- ifelse(input$radio==1, "blue", "yellow")
+      data <- mydata[year==input$year]
+      data[,value:=eval(parse(text=eq[name==input$formula]$form))]
+      Fn <- ecdf(data$value)
+      data[,per:=Fn(value)]
+      txt <- paste0(as.integer((data[`District Name`==input$primary_district]$per*100)),"%")
 
-        data <- mydata[year==input$year]
-        data[,value:=eval(parse(text=eq[name==input$formula]$form))]
-        Fn <- ecdf(data$value)
-        data[,per:=Fn(value)]
-        if(input$radio==1) {
-          txt <- paste0(as.integer((data[`District Name`==input$primary_district]$per*100)),"%")
-        } else {
-          txt <- paste0(as.integer((data[`District Name`==input$secondary_district]$per*100)),"%")
-        }
+      if(txt=="%") txt <- "--%"
 
-        if(txt=="%") txt <- "--%"
-
-
-      } else {
-        txt<-"--%"
-        mycol <- "blue"
-      }
-        valueBox(txt, "State-Wide", icon = icon("map"), 
-                 color=mycol)  
+      valueBox(txt, "State-Wide", icon = icon("map"), 
+               color="blue")  
       })
 
    Chap41box <- reactive({
-      if(!is.null(input$radio)) {
-        mycol <- ifelse(input$radio==1, "blue", "yellow")
-        # data <- mydata[fgsd==TRUE & year==input$year]
-        data <- mydata[Chap41 > 0 & year==input$year]
+      data <- mydata[Chap41 > 0 & year==input$year]
 
-        data[,value:=eval(parse(text=eq[name==input$formula]$form))]
-        Fn <- ecdf(data$value)
-        data[,per:=Fn(value)]
-        if(input$radio==1) {
-          txt <- paste0(as.integer((data[`District Name`==input$primary_district]$per*100)),"%")
-        } else {
-          txt <- paste0(as.integer((data[`District Name`==input$secondary_district]$per*100)),"%")
-        }
+      data[,value:=eval(parse(text=eq[name==input$formula]$form))]
+      Fn <- ecdf(data$value)
+      data[,per:=Fn(value)]
+      txt <- paste0(as.integer((data[`District Name`==input$primary_district]$per*100)),"%")
 
-        if(txt=="%") txt <- "--%"
+      if(txt=="%") txt <- "--%"
 
-      } else {
-        txt<-"--%"
-        mycol <- "blue"
-      }
-        # valueBox(txt, "In Fast Growth Districts", icon = icon("line-chart"), 
-        valueBox(txt, "In Chapter 41 Districts", icon = icon("home"), 
-                 color=mycol)
-      })
+      # valueBox(txt, "In Fast Growth Districts", icon = icon("line-chart"), 
+      valueBox(txt, "In Chapter 41 Districts", icon = icon("home"), 
+               color="blue")
+    })
 
    FGSDbox <- reactive({
-      if(!is.null(input$radio)) {
-        mycol <- ifelse(input$radio==1, "blue", "yellow")
-        # data <- mydata[fgsd==TRUE & year==input$year]
-        data <- mydata[fgsd==TRUE & year==input$year]
+      data <- mydata[fgsd==TRUE & year==input$year]
 
-        data[,value:=eval(parse(text=eq[name==input$formula]$form))]
-        Fn <- ecdf(data$value)
-        data[,per:=Fn(value)]
-        if(input$radio==1) {
-          txt <- paste0(as.integer((data[`District Name`==input$primary_district]$per*100)),"%")
-        } else {
-          txt <- paste0(as.integer((data[`District Name`==input$secondary_district]$per*100)),"%")
-        }
+      data[,value:=eval(parse(text=eq[name==input$formula]$form))]
+      Fn <- ecdf(data$value)
+      data[,per:=Fn(value)]
+      txt <- paste0(as.integer((data[`District Name`==input$primary_district]$per*100)),"%")
 
-        if(txt=="%") txt <- "--%"
+      if(txt=="%") txt <- "--%"
 
-      } else {
-        txt<-"--%"
-        mycol <- "blue"
-      }
-        # valueBox(txt, "In Fast Growth Districts", icon = icon("line-chart"), 
-        valueBox(txt, "In Fast-Growth Districts", icon = icon("line-chart"), 
-                 color=mycol)
-      })
+      # valueBox(txt, "In Fast Growth Districts", icon = icon("line-chart"), 
+      valueBox(txt, "In Fast-Growth Districts", icon = icon("line-chart"), 
+               color="blue")
+    })
 
    TSCbox <- reactive({
-      if(!is.null(input$radio)) {
-        mycol <- ifelse(input$radio==1, "blue", "yellow")
-        # data <- mydata[fgsd==TRUE & year==input$year]
-        data <- mydata[TSC==TRUE & Chap41 > 0 & year==input$year]
+      data <- mydata[TSC==TRUE & Chap41 > 0 & year==input$year]
 
-        data[,value:=eval(parse(text=eq[name==input$formula]$form))]
-        Fn <- ecdf(data$value)
-        data[,per:=Fn(value)]
-        if(input$radio==1) {
-          txt <- paste0(as.integer((data[`District Name`==input$primary_district]$per*100)),"%")
-        } else {
-          txt <- paste0(as.integer((data[`District Name`==input$secondary_district]$per*100)),"%")
-        }
+      data[,value:=eval(parse(text=eq[name==input$formula]$form))]
+      Fn <- ecdf(data$value)
+      data[,per:=Fn(value)]
+      txt <- paste0(as.integer((data[`District Name`==input$primary_district]$per*100)),"%")
 
-        if(txt=="%") txt <- "--%"
+      if(txt=="%") txt <- "--%"
 
-      } else {
-        txt<-"--%"
-        mycol <- "blue"
-      }
-        # valueBox(txt, "In Fast Growth Districts", icon = icon("line-chart"), 
-        valueBox(txt, "In TSC Districts", icon = icon("group"), 
-                 color=mycol)
-      })
+      # valueBox(txt, "In Fast Growth Districts", icon = icon("line-chart"), 
+      valueBox(txt, "In TSC Districts", icon = icon("group"), 
+               color="blue")
+    })
 
    equitybox <- reactive({
-      if(!is.null(input$radio)) {
-        mycol <- ifelse(input$radio==1, "blue", "yellow")
-        # data <- mydata[fgsd==TRUE & year==input$year]
-        data <- mydata[equity==TRUE & year==input$year]
+      data <- mydata[equity==TRUE & year==input$year]
 
+      data[,value:=eval(parse(text=eq[name==input$formula]$form))]
+      Fn <- ecdf(data$value)
+      data[,per:=Fn(value)]
+      txt <- paste0(as.integer((data[`District Name`==input$primary_district]$per*100)),"%")
+
+      if(txt=="%") txt <- "--%"
+
+      valueBox(txt, "In Equity Center Districts", icon = icon("balance-scale"), 
+               color="blue")
+    })
+
+    GSAbox2 <- reactive({
+      if(!is.null(input$formula) & !is.null(input$selectPlot1)) {
+        data <- switch(input$selectPlot1,
+          "1" = mydata[austin==TRUE & year==input$year],
+          "2" = mydata[dfw==TRUE & year==input$year],
+          "3" = mydata[houston==TRUE & year==input$year],
+          "4" = mydata[gsa==TRUE & year==input$year])
+
+        title <- switch(input$selectPlot1,
+          "1" = "In the Austin Area",
+          "2" = "In the DFW Area",
+          "3" = "In the Houston Area",
+          "4" = "In the San Antonio Area")
+
+
+        # data <- mydata[gsa==TRUE & year==input$year]
         data[,value:=eval(parse(text=eq[name==input$formula]$form))]
         Fn <- ecdf(data$value)
         data[,per:=Fn(value)]
-        if(input$radio==1) {
-          txt <- paste0(as.integer((data[`District Name`==input$primary_district]$per*100)),"%")
-        } else {
           txt <- paste0(as.integer((data[`District Name`==input$secondary_district]$per*100)),"%")
-        }
 
         if(txt=="%") txt <- "--%"
 
+
       } else {
         txt<-"--%"
-        mycol <- "blue"
+        title<-"---"
       }
-        # valueBox(txt, "In Fast Growth Districts", icon = icon("line-chart"), 
-        valueBox(txt, "In Equity Center Districts", icon = icon("balance-scale"), 
-                 color=mycol)
+        valueBox(txt, title, icon = icon("map-pin"), 
+                 color="yellow")
+     
       })
+
+
+   statebox2 <- reactive({
+      data <- mydata[year==input$year]
+      data[,value:=eval(parse(text=eq[name==input$formula]$form))]
+      Fn <- ecdf(data$value)
+      data[,per:=Fn(value)]
+        txt <- paste0(as.integer((data[`District Name`==input$secondary_district]$per*100)),"%")
+
+      if(txt=="%") txt <- "--%"
+
+      valueBox(txt, "State-Wide", icon = icon("map"), 
+               color="yellow")  
+    })
+
+   Chap41box2 <- reactive({
+      data <- mydata[Chap41 > 0 & year==input$year]
+      data[,value:=eval(parse(text=eq[name==input$formula]$form))]
+      Fn <- ecdf(data$value)
+      data[,per:=Fn(value)]
+        txt <- paste0(as.integer((data[`District Name`==input$secondary_district]$per*100)),"%")
+
+      if(txt=="%") txt <- "--%"
+
+      valueBox(txt, "In Chapter 41 Districts", icon = icon("home"), 
+               color="yellow")
+    })
+
+   FGSDbox2 <- reactive({
+      data <- mydata[fgsd==TRUE & year==input$year]
+      data[,value:=eval(parse(text=eq[name==input$formula]$form))]
+      Fn <- ecdf(data$value)
+      data[,per:=Fn(value)]
+        txt <- paste0(as.integer((data[`District Name`==input$secondary_district]$per*100)),"%")
+
+      if(txt=="%") txt <- "--%"
+
+      valueBox(txt, "In Fast-Growth Districts", icon = icon("line-chart"), 
+               color="yellow")
+    })
+
+   TSCbox2 <- reactive({
+      data <- mydata[TSC==TRUE & Chap41 > 0 & year==input$year]
+      data[,value:=eval(parse(text=eq[name==input$formula]$form))]
+      Fn <- ecdf(data$value)
+      data[,per:=Fn(value)]
+        txt <- paste0(as.integer((data[`District Name`==input$secondary_district]$per*100)),"%")
+
+      if(txt=="%") txt <- "--%"
+
+      valueBox(txt, "In TSC Districts", icon = icon("group"), 
+               color="yellow")
+    })
+
+   equitybox2 <- reactive({
+      data <- mydata[equity==TRUE & year==input$year]
+      data[,value:=eval(parse(text=eq[name==input$formula]$form))]
+      Fn <- ecdf(data$value)
+      data[,per:=Fn(value)]
+        txt <- paste0(as.integer((data[`District Name`==input$secondary_district]$per*100)),"%")
+
+      if(txt=="%") txt <- "--%"
+
+      valueBox(txt, "In Equity Center Districts", icon = icon("balance-scale"), 
+               color="yellow")
+    })
 
 
 
@@ -709,56 +809,57 @@ shinyServer(function(input, output, session) {
    }
   })
 
-
-  # Change current district focus
-  observeEvent(input$radio, {
-    mycol <- ifelse(input$radio==1, "blue", "yellow")
-
-    output$dist_box <- renderUI({
-          box(title=textOutput("current_district"),
-            radioButtons("radio", label = NULL,
-              choices = list("Primary" = 1, "Secondary" = 2), 
-              selected = input$radio),
-              solidHeader=TRUE, 
-              status=ifelse(input$radio==1, "primary", "warning"), 
-              width=3
-          )
-    })
-   # output$GSA <- renderValueBox({
-   #      valueBox("25%", "In the San Antonio Area", icon = icon("map-pin"), 
-   #               color=mycol)
-   #    })
-   # output$state <- renderValueBox({
-   #      valueBox("35%", "State-Wide", icon = icon("map"), 
-   #               color=mycol)  
-   #    })
-   # output$FGSD <- renderValueBox({
-   #      valueBox("30%", "In Fast Growth Districts", icon = icon("line-chart"), 
-   #               color=mycol)
-   #    })
-
-
-
-    output$current_district <- renderText({
-      if(input$radio==1) {
-        input$primary_district
-      } else {
-        input$secondary_district
-      }
-    })
+  output$vbox4 <- renderValueBox({
+    if(!is.null(input$selectPlot1)) {
+         switch(input$selectPlot1,  
+               '1' = GSAbox2(),
+               '2' = GSAbox2(),
+               '3' = GSAbox2(),
+               '4' = GSAbox2(),
+               '5' = statebox2(),
+               '6' = Chap41box2(),
+               '7' = TSCbox2(),
+               '8' = FGSDbox2(),
+               '9' = equitybox2())   
+    }  
   })
- 
+   
+
+  output$vbox5 <- renderValueBox({
+    if(!is.null(input$selectPlot2)) {
+         switch(input$selectPlot2,  
+               '1' = GSAbox2(),
+               '2' = GSAbox2(),
+               '3' = GSAbox2(),
+               '4' = GSAbox2(),
+               '5' = statebox2(),
+               '6' = Chap41box2(),
+               '7' = TSCbox2(),
+               '8' = FGSDbox2(),
+               '9' = equitybox2())   
+    }
+  })
+
+  output$vbox6 <- renderValueBox({
+    if(!is.null(input$selectPlot3)) {    
+     switch(input$selectPlot3,  
+               '1' = GSAbox2(),
+               '2' = GSAbox2(),
+               '3' = GSAbox2(),
+               '4' = GSAbox2(),
+               '5' = statebox2(),
+               '6' = Chap41box2(),
+               '7' = TSCbox2(),
+               '8' = FGSDbox2(),
+               '9' = equitybox2())   
+   }
+  })
 
 
   # Drop-down selection box for which formula
   output$choose_formula <- renderUI({
     selectInput("formula", NULL, as.list(eq$name), selected="(Total Revenue-Chap41)/WADA")
   })
-
-  # Drop-down selection box for which formula
-  # output$choose_formula_time <- renderUI({
-  #   selectInput("formula2", NULL, as.list(eq$name))
-  # })
 
   # Drop-down selection box for which year
   output$choose_year <- renderUI({
@@ -771,7 +872,7 @@ shinyServer(function(input, output, session) {
 #### Greater San Antonio - Most Recent Year
 ####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-  output$plot1 <- renderPlot({
+  output$plot1 <- renderPlotly({
     if(!(is.null(input$formula) | is.null(input$primary_district))) {
       switch(input$selectPlot1,
              '1' = fplot1(input, txtsize=1, group="austin", title=""),
@@ -786,7 +887,7 @@ shinyServer(function(input, output, session) {
       }
   })
 
-  output$plot1L <- renderPlot({
+  output$plot1L <- renderPlotly({
     if(!(is.null(input$formula) | is.null(input$primary_district))) {
       switch(input$selectPlot1,
              '1' = fplot1(input, txtsize=3, group="austin", title="Greater Austin"),
@@ -827,7 +928,7 @@ shinyServer(function(input, output, session) {
 
 
 
-  output$plot2 <- renderPlot({
+  output$plot2 <- renderPlotly({
     if(!(is.null(input$formula) | is.null(input$primary_district))) {
       switch(input$selectPlot2,
              '1' = fplot1(input, txtsize=1, group="austin", title=""),
@@ -842,7 +943,7 @@ shinyServer(function(input, output, session) {
       }
   })
 
-  output$plot2L <- renderPlot({
+  output$plot2L <- renderPlotly({
     if(!(is.null(input$formula) | is.null(input$primary_district))) {
       switch(input$selectPlot2,
              '1' = fplot1(input, txtsize=3, group="austin", title="Greater Austin"),
@@ -864,13 +965,13 @@ shinyServer(function(input, output, session) {
 ####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
-  output$tsplot2 <- renderPlot({
+  output$tsplot2 <- renderPlotly({
     if(!(is.null(input$formula) | is.null(input$primary_district))) {
       tsfplot2(input, txtsize=3,ifelse(input$inflation==TRUE, TRUE, FALSE),input$tsgroups)
     }
   })
 
-  output$tsplot2L <- renderPlot({
+  output$tsplot2L <- renderPlotly({
     if(!(is.null(input$formula) | is.null(input$primary_district))) {
       tsfplot2(input, txtsize=3,ifelse(input$inflation==TRUE, TRUE, FALSE),input$tsgroups)
     }
@@ -883,7 +984,7 @@ shinyServer(function(input, output, session) {
 ####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
-  output$plot3 <- renderPlot({
+  output$plot3 <- renderPlotly({
     if(!(is.null(input$formula) | is.null(input$primary_district))) {
       switch(input$selectPlot3,
              '1' = fplot1(input, txtsize=1, group="austin", title=""),
@@ -898,7 +999,7 @@ shinyServer(function(input, output, session) {
       }
   })
 
-  output$plot3L <- renderPlot({
+  output$plot3L <- renderPlotly({
     if(!(is.null(input$formula) | is.null(input$primary_district))) {
       switch(input$selectPlot3,
              '1' = fplot1(input, txtsize=3, group="austin", title="Greater Austin"),
@@ -913,56 +1014,6 @@ shinyServer(function(input, output, session) {
     }
   })
 
-
-  # output$plot4 <- renderPlot({
-  #   data <- histdata[1:100]
-  #   hist(data)
-  # })
-
-
-  # output$plot5 <- renderPlot({
-  #   data <- histdata[1:100]
-  #   hist(data)
-  # })
-
-  # output$plot6 <- renderPlot({
-  #   data <- histdata[1:100]
-  #   hist(data)
-  # })
-
-
-  output$downloadPlot1 <- downloadHandler(
-      filename = function() { paste(input$formula, '.pdf', sep='') },
-      content = function(file) {
-          ggsave(file, device = "pdf", width=5, height=4, units="in")
-      }
-  )
-  output$downloadPlot2 <- downloadHandler(
-      filename = function() { paste(input$formula, '.pdf', sep='') },
-      content = function(file) {
-          ggsave(file, device = "pdf", width=5, height=4, units="in")
-      }
-  )
-  output$downloadPlot3 <- downloadHandler(
-      filename = function() { paste(input$formula, '.pdf', sep='') },
-      content = function(file) {
-          ggsave(file, device = "pdf", width=5, height=4, units="in")
-      }
-  )
-  output$tsdownloadPlot2 <- downloadHandler(
-      filename = function() { paste(input$formula, '.pdf', sep='') },
-      content = function(file) {
-          ggsave(file, device = "pdf", width=8, height=4, units="in")
-      }
-  )
-
-
-  # output$downloadPlot3 <- downloadHandler(
-  #     filename = function() { paste(input$formula, '.pdf', sep='') },
-  #     content = function(file) {
-  #         ggsave(file, device = "pdf", width=5, height=4, units="in")
-  #     }
-  # )
 
   formula_text <- eventReactive(input$save_formula, {
     print(eq)
@@ -1009,10 +1060,27 @@ shinyServer(function(input, output, session) {
                 "Fast-Growth")
     checkboxGroupInput("tsgroups", NA,
                      choices=choices,
-                     selected=choices[c(7,8,9)])
+                     selected=choices[c(1,7)])
   })
 
   output$selected_formula <- renderText(input$formula)
+  output$selected_formula2 <- renderText(input$formula)
+
+  output$dist_1 <- renderUI(tags$h4(input$primary_district))
+  output$dist_2 <- renderUI(tags$h4(input$secondary_district))
+
+df2 <- data.frame(x = 1:10, y = 1:10)
+output$scatter1 <- renderPlotly({
+    plot_ly(df2, x = ~x, y = ~y) %>% add_markers()
+  })
+
+  output$box1 <- renderPlotly({
+    eventdata <- event_data('plotly_click')
+    validate(need(!is.null(eventdata),
+                  'Hover over the scatter plot to populate this boxplot'))
+
+    plot_ly(df2, x = ~x, y = ~y, type = 'box')
+  })
 
 })
 
